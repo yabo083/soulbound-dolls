@@ -1,0 +1,38 @@
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Minecraft/NeoForge run output
+run/
+**/run/
+logs/
+**/logs/
+crash-reports/
+**/crash-reports/
+
+# IDEs and local tooling
+.idea/
+.eclipse/
+.vscode/
+.cursor/
+.trellis/
+.codegraph/
+*.iml
+*.ipr
+*.iws
+bin/
+**/bin/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local env/secrets
+.env
+.env.*
+!.env.example
+
+# Archives and generated jars outside Gradle outputs
+*.jar
+!gradle/wrapper/gradle-wrapper.jar

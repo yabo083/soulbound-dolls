@@ -1,0 +1,88 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version, for example 0.1.0
+        required: true
+        default: "0.1.0"
+      version_type:
+        description: Release type
+        required: true
+        type: choice
+        options:
+          - alpha
+          - beta
+          - release
+        default: release
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish NeoForge 1.21.1
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Resolve release metadata
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "RELEASE_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+            echo "VERSION_TYPE=release" >> "$GITHUB_ENV"
+          else
+            echo "RELEASE_VERSION=${{ inputs.version }}" >> "$GITHUB_ENV"
+            echo "VERSION_TYPE=${{ inputs.version_type }}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Validate publishing secrets
+        shell: bash
+        env:
+          MODRINTH_PROJECT_ID: ${{ secrets.MODRINTH_PROJECT_ID }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          CURSEFORGE_PROJECT_ID: ${{ secrets.CURSEFORGE_PROJECT_ID }}
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+        run: |
+          test -n "$MODRINTH_PROJECT_ID"
+          test -n "$MODRINTH_TOKEN"
+          test -n "$CURSEFORGE_PROJECT_ID"
+          test -n "$CURSEFORGE_TOKEN"
+
+      - name: Build
+        run: ./gradlew :platforms:neoforge-1.21.1:build
+
+      - name: Publish to Modrinth and CurseForge
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          files: platforms/neoforge-1.21.1/build/libs/*.jar
+          name: Soulbound Dolls ${{ env.RELEASE_VERSION }} for NeoForge 1.21.1
+          version: ${{ env.RELEASE_VERSION }}
+          version-type: ${{ env.VERSION_TYPE }}
+          changelog-file: CHANGELOG.md
+          loaders: neoforge
+          game-versions: 1.21.1
+          java: 21
+          modrinth-id: ${{ secrets.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          curseforge-id: ${{ secrets.CURSEFORGE_PROJECT_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}

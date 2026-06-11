@@ -1,0 +1,138 @@
+plugins {
+    id "net.neoforged.moddev"
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+base {
+    archivesName = "soulbound-dolls-neoforge-1.21.1"
+}
+
+neoForge {
+    version = rootProject.findProperty("neo_version")
+
+    runs {
+        client {
+            client()
+            gameDirectory = project.file("run/client")
+        }
+
+        server {
+            server()
+            gameDirectory = project.file("run/server")
+            programArgument "--nogui"
+        }
+
+        configureEach {
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+
+    mods {
+        "${rootProject.findProperty("mod_id")}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+sourceSets.main.java.srcDir rootProject.file("common/src/main/java")
+sourceSets.test.compileClasspath += sourceSets.main.compileClasspath
+sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
+
+dependencies {
+    testImplementation platform("org.junit:junit-bom:5.10.2")
+    testImplementation "org.junit.jupiter:junit-jupiter"
+}
+
+tasks.named("test", Test).configure {
+    useJUnitPlatform()
+}
+
+tasks.withType(ProcessResources).configureEach {
+    var replaceProperties = [
+            minecraft_version      : rootProject.findProperty("minecraft_version"),
+            minecraft_version_range: rootProject.findProperty("minecraft_version_range"),
+            neo_version            : rootProject.findProperty("neo_version"),
+            neo_version_range      : rootProject.findProperty("neo_version_range"),
+            loader_version_range   : rootProject.findProperty("loader_version_range"),
+            mod_id                 : rootProject.findProperty("mod_id"),
+            mod_name               : rootProject.findProperty("mod_name"),
+            mod_license            : rootProject.findProperty("mod_license"),
+            mod_version            : rootProject.findProperty("mod_version"),
+            mod_authors            : rootProject.findProperty("mod_authors"),
+            mod_description        : rootProject.findProperty("mod_description")
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(["META-INF/neoforge.mods.toml"]) {
+        expand replaceProperties
+    }
+}
+
+def copyJarToTestSourceJar = tasks.named("jar").flatMap { it.archiveFile }
+def copyJarToTestTargetDir = "E:/SteamLibrary/steamapps/common/PCL2/mc_a/.minecraft/versions/Mechanomania/mods"
+def copyJarToTestJarPrefix = "${base.archivesName.get()}-"
+
+tasks.register("copyJarToTest") {
+    group = "verification"
+    description = "Builds and copies the NeoForge jar into the local Mechanomania test mods folder."
+    dependsOn tasks.named("build")
+    inputs.file(copyJarToTestSourceJar)
+    outputs.upToDateWhen { false }
+
+    doLast {
+        File sourceJar = copyJarToTestSourceJar.get().asFile
+        File targetDir = new File(copyJarToTestTargetDir)
+        String jarPrefix = copyJarToTestJarPrefix
+        File targetJar = new File(targetDir, sourceJar.name)
+        File tempJar = new File(targetDir, sourceJar.name + ".tmp")
+
+        if (!sourceJar.isFile()) {
+            throw new GradleException("Built jar does not exist: ${sourceJar}")
+        }
+        if (!targetDir.isDirectory()) {
+            throw new GradleException("Test mods directory does not exist or is not a directory: ${targetDir}")
+        }
+        String normalizedTarget = targetDir.canonicalPath.replace('\\', '/')
+        String expectedTarget = new File(copyJarToTestTargetDir).canonicalPath.replace('\\', '/')
+        if (normalizedTarget != expectedTarget || !normalizedTarget.endsWith('/Mechanomania/mods')) {
+            throw new GradleException("Refusing to copy into unexpected mods directory: ${targetDir}")
+        }
+
+        if (tempJar.exists() && !tempJar.delete()) {
+            throw new GradleException("Cannot delete stale temp jar, close Minecraft/PCL2 if it is locked: ${tempJar}")
+        }
+
+        java.nio.file.Files.copy(sourceJar.toPath(), tempJar.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        if (tempJar.length() != sourceJar.length()) {
+            tempJar.delete()
+            throw new GradleException("Temp jar size mismatch: source=${sourceJar.length()} copied=${tempJar.length()}")
+        }
+
+        File[] oldJars = targetDir.listFiles({ File file ->
+            file.name.startsWith(jarPrefix) && file.name.endsWith(".jar") && file.name != sourceJar.name
+        } as FileFilter)
+        if (oldJars != null) {
+            oldJars.each { File oldJar ->
+                if (!oldJar.delete()) {
+                    tempJar.delete()
+                    throw new GradleException("Cannot delete old mod jar, close Minecraft/PCL2 if it is locked: ${oldJar}")
+                }
+            }
+        }
+
+        if (targetJar.exists() && !targetJar.delete()) {
+            tempJar.delete()
+            throw new GradleException("Cannot replace existing mod jar, close Minecraft/PCL2 if it is locked: ${targetJar}")
+        }
+        if (!tempJar.renameTo(targetJar)) {
+            tempJar.delete()
+            throw new GradleException("Cannot move temp jar into place: ${tempJar} -> ${targetJar}")
+        }
+        if (targetJar.length() != sourceJar.length()) {
+            throw new GradleException("Target jar size mismatch: source=${sourceJar.length()} target=${targetJar.length()}")
+        }
+
+        logger.lifecycle("Copied ${sourceJar.name} to ${targetJar} (${targetJar.length()} bytes)")
+    }
+}
