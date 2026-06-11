@@ -1,0 +1,14 @@
+plugins {
+    id "net.neoforged.moddev" version "2.0.95" apply false
+}
+
+allprojects {
+    group = rootProject.findProperty("mod_group_id")
+    version = rootProject.findProperty("mod_version")
+}
+
+subprojects {
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = "UTF-8"
+    }
+}
