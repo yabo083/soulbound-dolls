@@ -61,7 +61,7 @@ Pickup is creator-only by default. Server config can allow anyone to pick up pla
 - The placed doll model uses player-skin UVs and renders as a Q-style doll when skin data is available.
 - If no skin is available, the doll uses the built-in fallback texture.
 - The `Player Doll` item uses dynamic player-skin rendering when its ItemStack has bound skin data; otherwise, it uses the static fallback item model.
-- Bound dolls with identical profile data can stack together up to 16. Different bound players do not merge into the same stack.
+- Bound dolls for the same player UUID can stack together up to 16. Dolls bound to different players do not merge into the same stack.
 - Server-side online skin refresh can be enabled or disabled by config.
 
 ## Admin Commands
