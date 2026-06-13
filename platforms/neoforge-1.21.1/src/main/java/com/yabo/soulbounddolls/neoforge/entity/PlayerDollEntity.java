@@ -2,15 +2,19 @@ package com.yabo.soulbounddolls.neoforge.entity;
 
 import com.yabo.soulbounddolls.common.PlayerDollProfile;
 import com.yabo.soulbounddolls.neoforge.SoulboundDollsConfig;
+import com.yabo.soulbounddolls.neoforge.data.DollPlayerRegistrySavedData;
 import com.yabo.soulbounddolls.neoforge.item.PlayerDollItem;
+import com.yabo.soulbounddolls.neoforge.skin.DollSkinResolver;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -46,6 +50,10 @@ public final class PlayerDollEntity extends Entity {
     private PlayerDollProfile profile;
     private UUID creatorUuid;
     private String creatorName = "";
+    // One-shot guards so the server-side skin self-heal runs at most once per loaded entity,
+    // never per tick. skinHealAttempted flips as soon as we either succeed or dispatch the request.
+    private boolean skinHealAttempted;
+    private boolean skinHealInFlight;
 
     public PlayerDollEntity(EntityType<? extends PlayerDollEntity> entityType, Level level) {
         super(entityType, level);
@@ -115,6 +123,42 @@ public final class PlayerDollEntity extends Entity {
         super.tick();
         decrementSyncedTimer(SHAKE_TICKS);
         decrementSyncedTimer(PAT_TICKS);
+        maybeHealMissingSkin();
+    }
+
+    /**
+     * If a placed doll has no skin yet (e.g. it was auto-given on a LAN/offline login before the
+     * owner's textures were fetched), pull the owner's skin from Mojang exactly once and hot-update
+     * the doll. Guarded so this never runs per tick: it fires at most one async request per loaded
+     * entity. Manual {@code /sbdoll give|refresh} still works independently.
+     */
+    private void maybeHealMissingSkin() {
+        if (skinHealAttempted || skinHealInFlight || level().isClientSide) {
+            return;
+        }
+        PlayerDollProfile current = getProfile();
+        if (current.hasSkin() || !SoulboundDollsConfig.ENABLE_ONLINE_SKIN_REFRESH.get()) {
+            skinHealAttempted = true;
+            return;
+        }
+        if (!(level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+
+        skinHealInFlight = true;
+        MinecraftServer server = serverLevel.getServer();
+        CompletableFuture
+                .supplyAsync(() -> DollSkinResolver.refreshOnline(server, current, System.currentTimeMillis()))
+                .whenComplete((refreshed, throwable) -> server.execute(() -> {
+                    skinHealInFlight = false;
+                    skinHealAttempted = true;
+                    if (throwable != null || refreshed.isEmpty() || isRemoved()) {
+                        return;
+                    }
+                    PlayerDollProfile healed = refreshed.get();
+                    setProfile(healed);
+                    DollPlayerRegistrySavedData.get(server).upsert(healed);
+                }));
     }
 
     @Override
@@ -129,10 +173,7 @@ public final class PlayerDollEntity extends Entity {
 
     @Override
     public boolean skipAttackInteraction(Entity attacker) {
-        if (attacker instanceof Player player && player.isShiftKeyDown()) {
-            tryPickup(player);
-            return true;
-        }
+        // Left-click (attack) always shakes the doll; pickup is handled by sneak + right-click.
         playShakeFeedback();
         return true;
     }
@@ -140,13 +181,8 @@ public final class PlayerDollEntity extends Entity {
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
         ItemStack held = player.getItemInHand(hand);
-        if (player.isShiftKeyDown() && held.isEmpty()) {
-            return tryPickup(player);
-        }
-
         if (player.isShiftKeyDown()) {
-            playShakeFeedback();
-            return InteractionResult.sidedSuccess(level().isClientSide);
+            return tryPickup(player);
         }
 
         if (held.isEmpty()) {
@@ -209,7 +245,12 @@ public final class PlayerDollEntity extends Entity {
     }
 
     private InteractionResult tryPickup(Player player) {
-        if (!SoulboundDollsConfig.ALLOW_PICKUP_BY_ANYONE.get() && creatorUuid != null && !creatorUuid.equals(player.getUUID())) {
+        // Operators / single-player-with-cheats (permission level 2) can always pick up any doll,
+        // even ones bound to other players. Otherwise the creator-only rule applies unless the
+        // server allows pickup by anyone.
+        boolean operator = player.hasPermissions(2);
+        if (!operator && !SoulboundDollsConfig.ALLOW_PICKUP_BY_ANYONE.get()
+                && creatorUuid != null && !creatorUuid.equals(player.getUUID())) {
             if (player instanceof ServerPlayer serverPlayer) {
                 serverPlayer.displayClientMessage(Component.translatable("entity.soulbound_dolls.player_doll.pickup_denied"), true);
             }

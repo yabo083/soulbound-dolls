@@ -1,6 +1,7 @@
 package com.yabo.soulbounddolls.neoforge.data;
 
 import com.yabo.soulbounddolls.common.PlayerDollProfile;
+import com.yabo.soulbounddolls.neoforge.SoulboundDollsConfig;
 import com.yabo.soulbounddolls.neoforge.skin.DollSkinResolver;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,7 +23,6 @@ import net.minecraft.world.level.saveddata.SavedData;
 public final class DollPlayerRegistrySavedData extends SavedData {
     public static final String DATA_NAME = "soulbound_dolls_players";
     private static final int VERSION = 1;
-    private static final long REFRESH_RETRY_DELAY_MILLIS = 60L * 60L * 1000L;
 
     private final Map<UUID, StoredPlayer> playersByUuid = new HashMap<>();
     private final Map<String, UUID> uuidsByLowercaseName = new HashMap<>();
@@ -120,8 +120,9 @@ public final class DollPlayerRegistrySavedData extends SavedData {
         if (existing == null) {
             return true;
         }
+        long ttlMillis = SoulboundDollsConfig.SKIN_REFRESH_TTL_MINUTES.get() * 60L * 1000L;
         return existing.lastRefreshAttempt() <= 0L
-                || nowMillis - existing.lastRefreshAttempt() >= REFRESH_RETRY_DELAY_MILLIS;
+                || nowMillis - existing.lastRefreshAttempt() >= ttlMillis;
     }
 
     public Optional<String> lastRefreshFailure(UUID uuid) {

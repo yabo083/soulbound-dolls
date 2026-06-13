@@ -9,6 +9,7 @@ public final class SoulboundDollsConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_ONLINE_SKIN_REFRESH;
     public static final ModConfigSpec.BooleanValue ALLOW_PAT_PARTICLES;
     public static final ModConfigSpec.BooleanValue ALLOW_PICKUP_BY_ANYONE;
+    public static final ModConfigSpec.IntValue SKIN_REFRESH_TTL_MINUTES;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -25,6 +26,12 @@ public final class SoulboundDollsConfig {
         ALLOW_PICKUP_BY_ANYONE = builder
                 .comment("Allow any player to pick up placed player dolls. When false, only the creator may pick them up.")
                 .define("allowPickupByAnyone", false);
+        SKIN_REFRESH_TTL_MINUTES = builder
+                .comment(
+                        "Minimum minutes between online skin refreshes for the same player. Cached skins are reused",
+                        "within this window so the server does not re-query Mojang on every login. Higher values",
+                        "reduce network traffic; lower values pick up skin changes sooner.")
+                .defineInRange("skinRefreshTtlMinutes", 60, 1, 7 * 24 * 60);
 
         SPEC = builder.build();
     }

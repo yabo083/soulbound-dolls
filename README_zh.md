@@ -16,7 +16,8 @@ Soulbound Dolls 是一个 NeoForge 1.21.1 模组，用来把服务器里已知�
 - 可放置的 `Player Doll` 实体，支持坐姿、站立、可爱待机三种姿势。
 - 绑定娃娃物品和放置实体支持动态玩家皮肤渲染。
 - 世界/服务器级已知玩家资料记录。
-- 管理员命令可列出资料、发放娃娃、刷新皮肤。
+- 管理员命令（基于权限、可委派）可列出资料、发放娃娃、刷新皮肤。
+- 客户端按玩家缓存皮肤纹理，服务端在线刷新 TTL 可配置。
 - 可配置自动发放、在线皮肤刷新、拍摸粒子、拾取权限。
 - 提供英文和简体中文用户文档。
 
@@ -46,17 +47,43 @@ Modrinth 和 CurseForge 发布流水线已经预留，但在维护者完成项�
 4. 空白 `Player Doll` 也可以合成，并在首次放置时绑定为放置者。
 5. 放置后的娃娃可以拍摸、摇晃、切换姿势、创造中键复制，并按权限拾取。
 
+## 操作方式
+
+娃娃使用原版鼠标和潜行交互，无需自定义按键。
+
+| 操作 | 输入 | 效果 |
+| --- | --- | --- |
+| 放置娃娃 | 手持娃娃右键点击方块表面 | 生成绑定该资料的 `Player Doll` 实体。 |
+| 切换姿势 | 手持任意物品右键已放置娃娃 | 循环 坐姿 → 站立 → 可爱待机。 |
+| 拍摸 | 空手右键已放置娃娃 | 播放音效并生成爱心粒子（若 `allowPatParticles` 开启）。 |
+| 摇晃 | 潜行 + 攻击（左键）已放置娃娃 | 播放摇晃动画和音效。 |
+| 拾取 | 潜行 + 右键已放置娃娃 | 把娃娃收回物品栏，受 `allowPickupByAnyone` 限制。 |
+
+> 说明：本版本刻意保留原版交互。完全可自定义的按键绑定计划在后续版本加入。
+
 ## 管理员命令
 
-所有命令都需要权限等级 2。
+命令没有配置开关，改为基于权限控制：
+
+- **操作员**（开启作弊的单人世界，或权限等级 2 的服务器操作员/腐竹）始终可用。
+- 操作员可用 `/sbdoll permission grant <玩家>` 把使用权授予特定玩家，**无需**给对方完整 OP；
+  用 `revoke` 收回，用 `list` 查看已授权玩家。
+- 被授权玩家可用 `list`、`give`、`refresh`，但**不能**用 `permission`（不能继续提权）。
 
 ```text
 /sbdoll list
-/sbdoll give <target> <prototype>
+/sbdoll give <target> <prototype...>
+/sbdoll giveall <target>
 /sbdoll refresh <prototype>
+/sbdoll permission grant <玩家>      （仅操作员）
+/sbdoll permission revoke <玩家>     （仅操作员）
+/sbdoll permission list              （仅操作员）
 ```
 
-`<prototype>` 可以是已知玩家名称或 UUID。
+`<prototype>` 可以是玩家名称或 UUID。`give` 支持多个以空格分隔的名字批量发放；`giveall` 一次性
+为所有已知玩家各发一个娃娃。`give` 可解析**任何登录过本服务器的玩家**（通过原生 `usercache.json`
+资料缓存），不限于已在娃娃注册表中的玩家 —— 因此即使在离线模式服务器上，也能为任何曾经加入过的
+玩家发放娃娃。`list` 会列出所有已知玩家，并标注是否已捕获皮肤（✔）或仍是默认皮肤（✘）。
 
 ## 配置
 
@@ -72,6 +99,7 @@ config/soulbound_dolls-common.toml
 | `enableOnlineSkinRefresh` | `true` | 从 Mojang 服务刷新已知玩家皮肤。 |
 | `allowPatParticles` | `true` | 拍摸娃娃时生成爱心粒子。 |
 | `allowPickupByAnyone` | `false` | 允许任意玩家拾取已放置娃娃，否则仅创建者可拾取。 |
+| `skinRefreshTtlMinutes` | `60` | 同一玩家两次在线皮肤刷新之间的最小分钟数；在此窗口内复用缓存皮肤。 |
 
 ## 从源码构建
 
@@ -113,6 +141,7 @@ USER_GUIDE_CN.md                中文玩法和管理员指南
 - `Doll Catalog` 已注册，但还没有完整图鉴 UI。
 - 视觉效果仍需在物品栏、手持、掉落物、放置实体等场景做实机确认。
 - 目前没有 GameTest 自动化测试，交互流程仍需真实客户端/服务器冒烟测试。
+- 本版本对 Yes Steve Model (YSM) 仅做共存兼容；把玩家的 YSM 模型覆盖到娃娃上计划在后续版本实现。
 - 在 Modrinth 和 CurseForge 项目配置完成前，不触发正式发布。
 
 ## 许可证
