@@ -1,6 +1,7 @@
 package com.yabo.soulbounddolls.neoforge.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.yabo.soulbounddolls.common.PlayerDollProfile;
 import java.nio.charset.StandardCharsets;
@@ -141,8 +142,38 @@ class DollSkinManagerTest {
         assertEquals(1, underlyingResolverCalls.get(), "Derived profile texture should be cached like any resolved skin");
     }
 
+    @Test
+    void rejectsPackedSkinUrlFromNonMojangHost() {
+        PlayerDollProfile profile = PlayerDollProfile.of(
+                UUID.fromString("00000000-0000-0000-0000-000000000008"),
+                "Mallory",
+                textureValueFromUrl("https://example.com/texture/0123456789abcdef0123456789abcdef01234567"),
+                "skin-signature",
+                true,
+                100L);
+
+        assertTrue(DollSkinManager.derivePackedProfileSkinLocation(profile).isEmpty());
+    }
+
+    @Test
+    void rejectsPackedSkinHashOutsideMojangHashFormat() {
+        PlayerDollProfile profile = PlayerDollProfile.of(
+                UUID.fromString("00000000-0000-0000-0000-000000000009"),
+                "Mallory",
+                textureValueFromUrl("http://textures.minecraft.net/texture/../../evil"),
+                "skin-signature",
+                true,
+                100L);
+
+        assertTrue(DollSkinManager.derivePackedProfileSkinLocation(profile).isEmpty());
+    }
+
     private static String textureValue(String skinHash) {
-        String json = "{\"textures\":{\"SKIN\":{\"url\":\"http://textures.minecraft.net/texture/" + skinHash + "\",\"metadata\":{\"model\":\"slim\"}}}}";
+        return textureValueFromUrl("http://textures.minecraft.net/texture/" + skinHash);
+    }
+
+    private static String textureValueFromUrl(String skinUrl) {
+        String json = "{\"textures\":{\"SKIN\":{\"url\":\"" + skinUrl + "\",\"metadata\":{\"model\":\"slim\"}}}}";
         return Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
     }
 }

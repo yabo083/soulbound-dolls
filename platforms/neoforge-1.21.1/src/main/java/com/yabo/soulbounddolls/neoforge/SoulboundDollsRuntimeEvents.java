@@ -147,9 +147,16 @@ public final class SoulboundDollsRuntimeEvents {
 
         if (event.getEntity() instanceof Zombie zombie) {
             double range = SoulboundDollsConfig.ATTRACT_UNDEAD_RANGE.get();
-            zombie.goalSelector.addGoal(5, new ZombieMoveToDollGoal(zombie, 1.0D, range));
+            if (!hasZombieMoveToDollGoal(zombie)) {
+                zombie.goalSelector.addGoal(5, new ZombieMoveToDollGoal(zombie, 1.0D, range));
+            }
             ZombieDollCarryHelper.ensureHeadDollForSunProtection(zombie);
         }
+    }
+
+    private static boolean hasZombieMoveToDollGoal(Zombie zombie) {
+        return zombie.goalSelector.getAvailableGoals().stream()
+                .anyMatch(goal -> goal.getGoal() instanceof ZombieMoveToDollGoal);
     }
 
     @SubscribeEvent

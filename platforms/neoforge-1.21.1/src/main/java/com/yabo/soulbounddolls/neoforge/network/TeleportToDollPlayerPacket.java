@@ -134,12 +134,12 @@ public record TeleportToDollPlayerPacket() implements CustomPacketPayload {
                 return;
             }
 
-            // Teleport!
+            BlockPos originPos = sender.blockPosition();
             sender.teleportTo(senderLevel, safePos.getX() + 0.5, safePos.getY(), safePos.getZ() + 0.5,
                     sender.getYRot(), sender.getXRot());
 
             // Effects
-            senderLevel.playSound(null, sender.blockPosition(), SoundEvents.ENDERMAN_TELEPORT,
+            senderLevel.playSound(null, originPos, SoundEvents.ENDERMAN_TELEPORT,
                     SoundSource.PLAYERS, 1.0F, 1.0F);
             senderLevel.playSound(null, safePos, SoundEvents.ENDERMAN_TELEPORT,
                     SoundSource.PLAYERS, 1.0F, 1.0F);
@@ -176,7 +176,6 @@ public record TeleportToDollPlayerPacket() implements CustomPacketPayload {
             }
         }
 
-        // Fallback to target's exact position if no safe spot found nearby
-        return center;
+        return null;
     }
 }

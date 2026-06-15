@@ -10,7 +10,7 @@ public final class EnderMaskHelper {
     }
 
     public static boolean isProtected(boolean headSlotHasDoll, BooleanSupplier optionalSlotLookup) {
-        return headSlotHasDoll || optionalSlotLookup.getAsBoolean();
+        return headSlotHasDoll || (optionalSlotLookup != null && optionalSlotLookup.getAsBoolean());
     }
 
     public static boolean isProtected(Player player, BooleanSupplier optionalSlotLookup) {

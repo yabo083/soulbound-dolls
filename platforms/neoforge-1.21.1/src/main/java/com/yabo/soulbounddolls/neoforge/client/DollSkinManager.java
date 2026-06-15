@@ -14,6 +14,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Base64;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -96,14 +97,14 @@ public final class DollSkinManager {
         if (loadedPlayerSkin.isPresent() && !isTemporaryDefaultPlayerTexture(loadedPlayerSkin.get())) {
             ResourceLocation texture = loadedPlayerSkin.get();
             cache.put(uuid, new CachedSkin(skinValue, texture, false));
-            SoulboundDollsNeoForge.LOGGER.info(
+            SoulboundDollsNeoForge.LOGGER.debug(
                     "{} client-resolve loaded-player-hit {} {}",
                     DollSkinDiagnostics.PREFIX,
                     DollSkinDiagnostics.profileSummary(profile),
                     DollSkinDiagnostics.textureSummary(texture));
             return texture;
         }
-        loadedPlayerSkin.ifPresent(texture -> SoulboundDollsNeoForge.LOGGER.info(
+        loadedPlayerSkin.ifPresent(texture -> SoulboundDollsNeoForge.LOGGER.debug(
                 "{} client-resolve loaded-player-temporary-default {} {}",
                 DollSkinDiagnostics.PREFIX,
                 DollSkinDiagnostics.profileSummary(profile),
@@ -120,7 +121,7 @@ public final class DollSkinManager {
         ResourceLocation texture = skinResolver.apply(toGameProfile(profile));
         if (!isTemporaryDefaultPlayerTexture(texture)) {
             cache.put(uuid, new CachedSkin(skinValue, texture, false));
-            SoulboundDollsNeoForge.LOGGER.info(
+            SoulboundDollsNeoForge.LOGGER.debug(
                     "{} client-resolve profile-lookup-hit {} {}",
                     DollSkinDiagnostics.PREFIX,
                     DollSkinDiagnostics.profileSummary(profile),
@@ -130,14 +131,14 @@ public final class DollSkinManager {
             if (packedTexture.isPresent()) {
                 ResourceLocation packedLocation = packedTexture.get();
                 cache.put(uuid, new CachedSkin(skinValue, packedLocation, true));
-                SoulboundDollsNeoForge.LOGGER.info(
+                SoulboundDollsNeoForge.LOGGER.debug(
                         "{} client-resolve profile-property-hit {} {}",
                         DollSkinDiagnostics.PREFIX,
                         DollSkinDiagnostics.profileSummary(profile),
                         DollSkinDiagnostics.textureSummary(packedLocation));
                 return packedLocation;
             }
-            SoulboundDollsNeoForge.LOGGER.info(
+            SoulboundDollsNeoForge.LOGGER.debug(
                     "{} client-resolve profile-lookup-temporary-default {} {}",
                     DollSkinDiagnostics.PREFIX,
                     DollSkinDiagnostics.profileSummary(profile),
@@ -222,10 +223,23 @@ public final class DollSkinManager {
 
     private static Optional<String> skinHash(String skinUrl) {
         try {
-            String path = URI.create(skinUrl).getPath();
+            URI uri = URI.create(skinUrl);
+            String scheme = uri.getScheme();
+            String host = uri.getHost();
+            if (scheme == null || host == null) {
+                return Optional.empty();
+            }
+            if ((!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))
+                    || !"textures.minecraft.net".equalsIgnoreCase(host)) {
+                return Optional.empty();
+            }
+            String path = uri.getPath();
             int lastSlash = path.lastIndexOf('/');
             String hash = lastSlash >= 0 ? path.substring(lastSlash + 1) : path;
-            return hash.isBlank() ? Optional.empty() : Optional.of(hash);
+            if (!hash.matches("[0-9a-fA-F]{40}")) {
+                return Optional.empty();
+            }
+            return Optional.of(hash.toLowerCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
             return Optional.empty();
         }

@@ -63,6 +63,10 @@ class DollStackHelperTest {
     void rejectsUnboundOrUnrelatedStacks() {
         assertFalse(DollStackHelper.isBoundPlayerDoll(new ItemStack(SoulboundDollsItems.PLAYER_DOLL.get())));
         assertFalse(DollStackHelper.isBoundPlayerDoll(new ItemStack(Items.STONE)));
+        ItemStack spoofed = new ItemStack(Items.STONE);
+        spoofed.set(SoulboundDollsComponents.PLAYER_DOLL_PROFILE.get(),
+                PlayerDollProfile.of(UUID.randomUUID(), "Alex", "", "", false, 1L));
+        assertFalse(DollStackHelper.isBoundPlayerDoll(spoofed));
         assertFalse(DollStackHelper.isBoundPlayerDoll(ItemStack.EMPTY));
     }
 }

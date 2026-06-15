@@ -141,8 +141,7 @@ public final class PlayerDollItem extends Item implements Equipable {
             return InteractionResultHolder.consume(stack);
         }
 
-        // Otherwise let normal block interaction happen
-        return InteractionResultHolder.pass(stack);
+        return swapWithEquipmentSlot(this, level, player, hand);
     }
 
     @Override

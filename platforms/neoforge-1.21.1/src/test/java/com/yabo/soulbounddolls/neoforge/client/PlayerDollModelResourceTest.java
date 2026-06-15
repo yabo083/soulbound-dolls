@@ -64,7 +64,14 @@ class PlayerDollModelResourceTest {
         JsonObject tag = loadJson("data/curios/tags/item/head.json");
 
         assertFalse(tag.has("replace") && tag.get("replace").getAsBoolean());
-        assertTrue(tag.getAsJsonArray("values").toString().contains("soulbound_dolls:player_doll"));
+        boolean found = false;
+        for (JsonElement element : tag.getAsJsonArray("values")) {
+            if ("soulbound_dolls:player_doll".equals(element.getAsString())) {
+                found = true;
+                break;
+            }
+        }
+        assertTrue(found, "head tag must include soulbound_dolls:player_doll");
     }
 
     private static void assertVector(DollDisplayConfig.Vector3 vector, float x, float y, float z, String label) {

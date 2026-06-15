@@ -20,4 +20,9 @@ class EnderMaskHelperTest {
     void noDollDoesNotProtect() {
         assertFalse(EnderMaskHelper.isProtected(false, () -> false));
     }
+
+    @Test
+    void missingOptionalLookupDoesNotCrashOrProtect() {
+        assertFalse(EnderMaskHelper.isProtected(false, null));
+    }
 }

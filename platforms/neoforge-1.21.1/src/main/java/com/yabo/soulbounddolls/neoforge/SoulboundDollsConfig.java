@@ -76,7 +76,7 @@ public final class SoulboundDollsConfig {
                 .defineInRange("attractUndeadRange", 24.0, 0.0, 64.0);
 
         ENABLE_REPEL_PHANTOMS = builder
-                .comment("Placed dolls repel phantoms within range, preventing them from spawning or attacking nearby.")
+                .comment("Placed dolls repel phantoms within range, preventing them from targeting nearby players.")
                 .define("enableRepelPhantoms", true);
 
         REPEL_PHANTOMS_RANGE = builder

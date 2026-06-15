@@ -87,6 +87,57 @@ class DependencyPolicyTest {
                 "Plural tags/items is ignored by Minecraft 1.21.1 item tags");
     }
 
+    @Test
+    void playerDollItemDelegatesNonSneakUseToEquipableSwap() throws IOException {
+        String playerDollItem = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/item/PlayerDollItem.java");
+
+        assertTrue(playerDollItem.contains("return swapWithEquipmentSlot(this, level, player, hand);"),
+                "Non-sneak use should preserve vanilla right-click helmet equip behavior");
+        assertFalse(playerDollItem.contains("return InteractionResultHolder.pass(stack);"),
+                "Returning PASS bypasses Item/Equipable right-click equipment swap");
+    }
+
+    @Test
+    void runtimeEventsDoNotAddDuplicateZombieDollGoals() throws IOException {
+        String runtimeEvents = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/SoulboundDollsRuntimeEvents.java");
+
+        assertTrue(runtimeEvents.contains("hasZombieMoveToDollGoal"),
+                "EntityJoinLevelEvent can run on reload, so zombie doll goals must be deduplicated");
+        assertTrue(runtimeEvents.contains("getAvailableGoals()"),
+                "Deduplication should inspect existing GoalSelector entries before addGoal");
+    }
+
+    @Test
+    void runtimeEventsConfigTextDoesNotClaimPhantomSpawnPrevention() throws IOException {
+        String config = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/SoulboundDollsConfig.java");
+
+        assertFalse(config.contains("preventing them from spawning"),
+                "Phantom repel currently cancels targeting, not spawning");
+    }
+
+    @Test
+    void teleportPacketDoesNotFallbackToUnsafeCenter() throws IOException {
+        String packet = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/network/TeleportToDollPlayerPacket.java");
+
+        assertFalse(packet.contains("return center;"),
+                "Safe teleport lookup must return null when no validated location exists");
+        assertTrue(packet.contains("return null;"),
+                "No-safe-location path should remain reachable");
+    }
+
+    @Test
+    void teleportPacketCapturesOriginBeforeTeleportSound() throws IOException {
+        String packet = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/network/TeleportToDollPlayerPacket.java");
+        int originIndex = packet.indexOf("BlockPos originPos = sender.blockPosition();");
+        int teleportIndex = packet.indexOf("sender.teleportTo(");
+        int soundIndex = packet.indexOf("senderLevel.playSound(null, originPos");
+
+        assertTrue(originIndex >= 0 && originIndex < teleportIndex,
+                "Origin position must be captured before teleport mutates sender position");
+        assertTrue(soundIndex > teleportIndex,
+                "Departure sound should use captured origin position after teleport");
+    }
+
     private static List<DependencyBlock> dependencyBlocks(String toml) {
         Matcher matcher = DEPENDENCY_BLOCK.matcher(toml);
         List<DependencyBlock> blocks = new ArrayList<>();
