@@ -57,6 +57,13 @@ public final class PlayerDollItem extends Item implements Equipable {
 
     @Override
     public InteractionResult useOn(UseOnContext context) {
+        Player player = context.getPlayer();
+
+        // If player is sneaking and throw is enabled, don't place - let use() handle throwing
+        if (player != null && player.isShiftKeyDown() && SoulboundDollsConfig.ENABLE_THROW_DOLL.get()) {
+            return InteractionResult.PASS;
+        }
+
         ItemStack stack = context.getItemInHand();
         PlayerDollProfile profile = stack.get(SoulboundDollsComponents.PLAYER_DOLL_PROFILE.get());
 
@@ -64,7 +71,6 @@ public final class PlayerDollItem extends Item implements Equipable {
             return InteractionResult.SUCCESS;
         }
 
-        Player player = context.getPlayer();
         if (profile == null) {
             if (player == null) {
                 return InteractionResult.PASS;
@@ -108,6 +114,11 @@ public final class PlayerDollItem extends Item implements Equipable {
             tooltip.add(Component.translatable("item.soulbound_dolls.player_doll.tooltip.equipable")
                     .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
         }
+
+        if (SoulboundDollsConfig.ENABLE_THROW_DOLL.get()) {
+            tooltip.add(Component.translatable("item.soulbound_dolls.player_doll.tooltip.throwable")
+                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+        }
     }
 
     @Override
@@ -119,12 +130,13 @@ public final class PlayerDollItem extends Item implements Equipable {
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
 
-        // If throw feature is enabled and player is not sneaking, allow charging to throw
-        if (SoulboundDollsConfig.ENABLE_THROW_DOLL.get() && !player.isShiftKeyDown()) {
+        // Sneaking + enabled throw feature = start charging
+        if (SoulboundDollsConfig.ENABLE_THROW_DOLL.get() && player.isShiftKeyDown()) {
             player.startUsingItem(hand);
             return InteractionResultHolder.consume(stack);
         }
 
+        // Otherwise let normal block interaction happen
         return InteractionResultHolder.pass(stack);
     }
 

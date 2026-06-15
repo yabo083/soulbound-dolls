@@ -5,6 +5,7 @@
   "item.soulbound_dolls.player_doll.tooltip.bound": "绑定玩家：%s",
   "item.soulbound_dolls.player_doll.tooltip.unbound": "未绑定的娃娃",
   "item.soulbound_dolls.player_doll.tooltip.equipable": "可作为头盔佩戴",
+  "item.soulbound_dolls.player_doll.tooltip.throwable": "潜行+长按右键蓄力扔出",
   "entity.soulbound_dolls.player_doll": "玩家娃娃",
   "entity.soulbound_dolls.player_doll.pickup_denied": "只有这个娃娃的创建者可以拾取它。",
   "entity.soulbound_dolls.player_doll.pose.sitting": "姿势：坐姿",

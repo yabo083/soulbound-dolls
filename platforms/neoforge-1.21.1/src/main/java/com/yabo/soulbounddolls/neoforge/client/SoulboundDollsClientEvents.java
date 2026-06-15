@@ -35,6 +35,7 @@ public final class SoulboundDollsClientEvents {
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(SoulboundDollsEntities.PLAYER_DOLL.get(), PlayerDollRenderer::new);
+        event.registerEntityRenderer(SoulboundDollsEntities.DOLL_PROJECTILE.get(), DollProjectileRenderer::new);
     }
 
     @SubscribeEvent
