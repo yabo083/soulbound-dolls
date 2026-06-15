@@ -2,6 +2,7 @@ package com.yabo.soulbounddolls.neoforge.item;
 
 import com.yabo.soulbounddolls.common.PlayerDollProfile;
 import com.yabo.soulbounddolls.neoforge.SoulboundDollsComponents;
+import com.yabo.soulbounddolls.neoforge.SoulboundDollsConfig;
 import com.yabo.soulbounddolls.neoforge.SoulboundDollsEntities;
 import com.yabo.soulbounddolls.neoforge.SoulboundDollsItems;
 import com.yabo.soulbounddolls.neoforge.entity.PlayerDollEntity;
@@ -12,14 +13,18 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.Equipable;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.item.TooltipFlag;
 
-public final class PlayerDollItem extends Item {
+public final class PlayerDollItem extends Item implements Equipable {
     public PlayerDollItem(Properties properties) {
         super(properties);
     }
@@ -91,5 +96,15 @@ public final class PlayerDollItem extends Item {
 
         tooltip.add(Component.translatable("item.soulbound_dolls.player_doll.tooltip.bound", profile.name())
                 .withStyle(ChatFormatting.GRAY));
+
+        if (SoulboundDollsConfig.ALLOW_DOLL_AS_HELMET.get()) {
+            tooltip.add(Component.translatable("item.soulbound_dolls.player_doll.tooltip.equipable")
+                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+        }
+    }
+
+    @Override
+    public EquipmentSlot getEquipmentSlot() {
+        return SoulboundDollsConfig.ALLOW_DOLL_AS_HELMET.get() ? EquipmentSlot.HEAD : null;
     }
 }

@@ -4,6 +4,7 @@
   "item.soulbound_dolls.doll_catalog": "Doll Catalog",
   "item.soulbound_dolls.player_doll.tooltip.bound": "Bound to: %s",
   "item.soulbound_dolls.player_doll.tooltip.unbound": "Unbound doll",
+  "item.soulbound_dolls.player_doll.tooltip.equipable": "Can be worn as helmet",
   "entity.soulbound_dolls.player_doll": "Player Doll",
   "entity.soulbound_dolls.player_doll.pickup_denied": "Only this doll's creator can pick it up.",
   "entity.soulbound_dolls.player_doll.pose.sitting": "Pose: Sitting",
