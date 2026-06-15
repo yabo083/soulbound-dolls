@@ -70,7 +70,7 @@ tasks.withType(ProcessResources).configureEach {
 }
 
 def copyJarToTestSourceJar = tasks.named("jar").flatMap { it.archiveFile }
-def copyJarToTestTargetDir = "E:/SteamLibrary/steamapps/common/PCL2/mc_a/.minecraft/versions/Mechanomania/mods"
+def copyJarToTestTargetDir = "E:\\SteamLibrary\\steamapps\\common\\PCL2\\.minecraft\\versions\\Mechanomania\\mods"
 def copyJarToTestJarPrefix = "${base.archivesName.get()}-"
 
 tasks.register("copyJarToTest") {

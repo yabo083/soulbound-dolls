@@ -23,14 +23,9 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.ai.goal.AvoidEntityGoal;
-import net.minecraft.world.entity.monster.Phantom;
-import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.AABB;
 
 public final class PlayerDollEntity extends Entity {
     private static final String PROFILE_UUID_TAG = "ProfileUuid";
@@ -128,13 +123,14 @@ public final class PlayerDollEntity extends Entity {
         super.tick();
         decrementSyncedTimer(SHAKE_TICKS);
         decrementSyncedTimer(PAT_TICKS);
-        maybeHealMissingSkin();
 
-        // 0.1.2 features - only run on server side
+        // Only attempt skin healing on server side, once per entity load
         if (!level().isClientSide) {
-            repelPhantoms();
-            attractUndead();
+            maybeHealMissingSkin();
         }
+
+        // Note: Phantom repelling and undead attraction are now handled via AI goals
+        // registered on entity spawn, not per-tick checks. See onAddedToWorld().
     }
 
     /**
@@ -303,61 +299,6 @@ public final class PlayerDollEntity extends Entity {
             return UUID.fromString(entityData.get(PROFILE_UUID));
         } catch (IllegalArgumentException exception) {
             return new UUID(0L, 0L);
-        }
-    }
-
-    /**
-     * Repel phantoms within configured range. Phantoms will avoid the doll and be unable to target nearby players.
-     * This runs every tick but only processes phantoms within range.
-     */
-    private void repelPhantoms() {
-        if (!SoulboundDollsConfig.ENABLE_REPEL_PHANTOMS.get()) {
-            return;
-        }
-
-        double range = SoulboundDollsConfig.REPEL_PHANTOMS_RANGE.get();
-        AABB searchBox = new AABB(
-                getX() - range, getY() - range, getZ() - range,
-                getX() + range, getY() + range, getZ() + range
-        );
-
-        for (Phantom phantom : level().getEntitiesOfClass(Phantom.class, searchBox)) {
-            // Make phantom flee from the doll
-            if (phantom.getTarget() != null) {
-                double distSq = phantom.distanceToSqr(this);
-                if (distSq < range * range) {
-                    phantom.setTarget(null);
-                }
-            }
-        }
-    }
-
-    /**
-     * Attract undead mobs (zombies, skeletons, etc.) within configured range, similar to turtle eggs.
-     * Undead mobs will pathfind toward the doll.
-     */
-    private void attractUndead() {
-        if (!SoulboundDollsConfig.ENABLE_ATTRACT_UNDEAD.get()) {
-            return;
-        }
-
-        // Only check every 20 ticks (1 second) to reduce performance impact
-        if (tickCount % 20 != 0) {
-            return;
-        }
-
-        double range = SoulboundDollsConfig.ATTRACT_UNDEAD_RANGE.get();
-        AABB searchBox = new AABB(
-                getX() - range, getY() - range, getZ() - range,
-                getX() + range, getY() + range, getZ() + range
-        );
-
-        for (Mob mob : level().getEntitiesOfClass(Mob.class, searchBox)) {
-            // Check if the mob is undead (zombies, skeletons, etc.)
-            if (mob.isInvertedHealAndHarm()) {
-                // Make undead mob move toward the doll
-                mob.getNavigation().moveTo(this, 1.0);
-            }
         }
     }
 
