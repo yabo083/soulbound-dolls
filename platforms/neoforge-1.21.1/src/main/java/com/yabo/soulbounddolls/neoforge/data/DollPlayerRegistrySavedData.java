@@ -1,7 +1,9 @@
 package com.yabo.soulbounddolls.neoforge.data;
 
 import com.yabo.soulbounddolls.common.PlayerDollProfile;
+import com.yabo.soulbounddolls.neoforge.DollSkinDiagnostics;
 import com.yabo.soulbounddolls.neoforge.SoulboundDollsConfig;
+import com.yabo.soulbounddolls.neoforge.SoulboundDollsNeoForge;
 import com.yabo.soulbounddolls.neoforge.skin.DollSkinResolver;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -80,15 +82,35 @@ public final class DollPlayerRegistrySavedData extends SavedData {
 
     public void upsert(PlayerDollProfile profile) {
         StoredPlayer existing = playersByUuid.get(profile.uuid());
+        PlayerDollProfile storedProfile = mergeProfile(existing, profile);
+        SoulboundDollsNeoForge.LOGGER.info(
+                "{} registry-upsert incoming=[{}] existing=[{}] stored=[{}] preservedSkin={}",
+                DollSkinDiagnostics.PREFIX,
+                DollSkinDiagnostics.profileSummary(profile),
+                existing == null ? "none" : DollSkinDiagnostics.profileSummary(existing.profile()),
+                DollSkinDiagnostics.profileSummary(storedProfile),
+                existing != null && !profile.hasSkin() && existing.profile().hasSkin());
         if (existing != null) {
             removeNameIndex(existing.profile());
         }
-        playersByUuid.put(profile.uuid(), new StoredPlayer(
-                profile,
+        playersByUuid.put(storedProfile.uuid(), new StoredPlayer(
+                storedProfile,
                 existing == null ? 0L : existing.lastRefreshAttempt(),
                 existing == null ? "" : existing.lastRefreshFailure()));
-        indexName(profile);
+        indexName(storedProfile);
         setDirty();
+    }
+
+    private static PlayerDollProfile mergeProfile(StoredPlayer existing, PlayerDollProfile incoming) {
+        if (existing == null || incoming.hasSkin() || !existing.profile().hasSkin()) {
+            return incoming;
+        }
+        PlayerDollProfile existingProfile = existing.profile();
+        return incoming.withSkin(
+                existingProfile.skinValue(),
+                existingProfile.skinSignature(),
+                existingProfile.slimModel(),
+                incoming.lastUpdated());
     }
 
     public PlayerDollProfile upsertFromLogin(ServerPlayer player, long nowMillis) {

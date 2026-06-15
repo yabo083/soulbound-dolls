@@ -4,6 +4,9 @@
   "item.soulbound_dolls.doll_catalog": "Doll Catalog",
   "item.soulbound_dolls.player_doll.tooltip.bound": "Bound to: %s",
   "item.soulbound_dolls.player_doll.tooltip.unbound": "Unbound doll",
+  "item.soulbound_dolls.player_doll.tooltip.equipable": "Can be worn as helmet",
+  "item.soulbound_dolls.player_doll.tooltip.throwable": "Sneak + hold right-click to charge and throw",
+  "item.soulbound_dolls.player_doll.tooltip.ender_mask": "Endermen will stay calm when you wear it",
   "entity.soulbound_dolls.player_doll": "Player Doll",
   "entity.soulbound_dolls.player_doll.pickup_denied": "Only this doll's creator can pick it up.",
   "entity.soulbound_dolls.player_doll.pose.sitting": "Pose: Sitting",
@@ -28,5 +31,16 @@
   "config.soulbound_dolls.enableOnlineSkinRefresh": "Refresh known player skin textures from Mojang services after login or admin command use.",
   "config.soulbound_dolls.allowPatParticles": "Allow player doll pat interactions to emit heart particles.",
   "config.soulbound_dolls.allowPickupByAnyone": "Allow any player to pick up placed player dolls. When false, only the creator may pick them up.",
-  "config.soulbound_dolls.skinRefreshTtlMinutes": "Minimum minutes between online skin refreshes for the same player. Cached skins are reused within this window."
+  "config.soulbound_dolls.skinRefreshTtlMinutes": "Minimum minutes between online skin refreshes for the same player. Cached skins are reused within this window.",
+  "config.soulbound_dolls.enableEnderMaskProtection": "Treat a bound player doll worn in the head slot or compatible accessory slot as an enderman mask.",
+  "key.categories.soulbound_dolls": "Soulbound Dolls",
+  "key.soulbound_dolls.teleport_to_player": "Teleport to Doll Player",
+  "message.soulbound_dolls.teleport.disabled": "Teleport feature is disabled in config",
+  "message.soulbound_dolls.teleport.cooldown": "Teleport on cooldown (%s seconds remaining)",
+  "message.soulbound_dolls.teleport.no_doll": "You must hold a bound doll to teleport",
+  "message.soulbound_dolls.teleport.offline": "%s is not online",
+  "message.soulbound_dolls.teleport.wrong_dimension": "%s is in a different dimension",
+  "message.soulbound_dolls.teleport.no_safe_location": "Could not find a safe location near the player",
+  "message.soulbound_dolls.teleport.success": "Teleported to %s",
+  "jade.soulbound_dolls.bound_player": "Bound player: %s"
 }

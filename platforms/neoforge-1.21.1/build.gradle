@@ -39,7 +39,19 @@ sourceSets.main.java.srcDir rootProject.file("common/src/main/java")
 sourceSets.test.compileClasspath += sourceSets.main.compileClasspath
 sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
 
+repositories {
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+        content {
+            includeGroup "maven.modrinth"
+        }
+    }
+}
+
 dependencies {
+    compileOnly "maven.modrinth:jade:15.10.5+neoforge"
+
     testImplementation platform("org.junit:junit-bom:5.10.2")
     testImplementation "org.junit.jupiter:junit-jupiter"
 }
@@ -70,7 +82,9 @@ tasks.withType(ProcessResources).configureEach {
 }
 
 def copyJarToTestSourceJar = tasks.named("jar").flatMap { it.archiveFile }
-def copyJarToTestTargetDir = "E:/SteamLibrary/steamapps/common/PCL2/mc_a/.minecraft/versions/Mechanomania/mods"
+def copyJarToTestTargetDir = project.findProperty("testModsDir")
+        ?: "E:\\SteamLibrary\\steamapps\\common\\PCL2\\.minecraft\\versions\\Mechanomania\\mods"
+def copyJarToTestUsesDefaultTarget = !project.hasProperty("testModsDir")
 def copyJarToTestJarPrefix = "${base.archivesName.get()}-"
 
 tasks.register("copyJarToTest") {
@@ -95,7 +109,7 @@ tasks.register("copyJarToTest") {
         }
         String normalizedTarget = targetDir.canonicalPath.replace('\\', '/')
         String expectedTarget = new File(copyJarToTestTargetDir).canonicalPath.replace('\\', '/')
-        if (normalizedTarget != expectedTarget || !normalizedTarget.endsWith('/Mechanomania/mods')) {
+        if (normalizedTarget != expectedTarget || (copyJarToTestUsesDefaultTarget && !normalizedTarget.endsWith('/Mechanomania/mods'))) {
             throw new GradleException("Refusing to copy into unexpected mods directory: ${targetDir}")
         }
 
