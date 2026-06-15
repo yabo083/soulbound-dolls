@@ -51,19 +51,45 @@ class PlayerDollModelResourceTest {
         }
     }
 
+    @Test
+    void thirdPersonHandDisplayKeepsDollUpright() {
+        JsonObject display = loadModel().getAsJsonObject("display");
+
+        assertDisplayRotationX(display, "thirdperson_righthand", 0.0F);
+        assertDisplayRotationX(display, "thirdperson_lefthand", 0.0F);
+    }
+
+    @Test
+    void curiosHeadTagAllowsDollInHeadSlotWithoutApiDependency() {
+        JsonObject tag = loadJson("data/curios/tags/item/head.json");
+
+        assertFalse(tag.has("replace") && tag.get("replace").getAsBoolean());
+        assertTrue(tag.getAsJsonArray("values").toString().contains("soulbound_dolls:player_doll"));
+    }
+
     private static void assertVector(DollDisplayConfig.Vector3 vector, float x, float y, float z, String label) {
         assertEquals(x, vector.x(), 0.0001F, label + " x");
         assertEquals(y, vector.y(), 0.0001F, label + " y");
         assertEquals(z, vector.z(), 0.0001F, label + " z");
     }
 
+    private static void assertDisplayRotationX(JsonObject display, String key, float x) {
+        JsonElement rotation = display.getAsJsonObject(key).get("rotation");
+        assertNotNull(rotation, () -> key + " is missing rotation");
+        assertEquals(x, rotation.getAsJsonArray().get(0).getAsFloat(), 0.0001F, key + " rotation x");
+    }
+
     private static JsonObject loadModel() {
-        InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(MODEL_RESOURCE);
-        assertNotNull(stream, () -> "Missing test resource " + MODEL_RESOURCE);
+        return loadJson(MODEL_RESOURCE);
+    }
+
+    private static JsonObject loadJson(String resourcePath) {
+        InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourcePath);
+        assertNotNull(stream, () -> "Missing test resource " + resourcePath);
         try (InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
             return JsonParser.parseReader(reader).getAsJsonObject();
         } catch (Exception exception) {
-            throw new AssertionError("Could not load " + MODEL_RESOURCE, exception);
+            throw new AssertionError("Could not load " + resourcePath, exception);
         }
     }
 }

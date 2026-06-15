@@ -1,8 +1,12 @@
 package com.yabo.soulbounddolls.neoforge;
 
 import com.yabo.soulbounddolls.common.PlayerDollProfile;
+import com.yabo.soulbounddolls.neoforge.compat.curios.CuriosDollLookup;
 import com.yabo.soulbounddolls.neoforge.data.DollPlayerRegistrySavedData;
+import com.yabo.soulbounddolls.neoforge.entity.EnderMaskHelper;
 import com.yabo.soulbounddolls.neoforge.entity.PlayerDollEntity;
+import com.yabo.soulbounddolls.neoforge.entity.ZombieDollCarryHelper;
+import com.yabo.soulbounddolls.neoforge.entity.ZombieMoveToDollGoal;
 import com.yabo.soulbounddolls.neoforge.item.PlayerDollItem;
 import com.yabo.soulbounddolls.neoforge.skin.DollSkinResolver;
 import java.util.List;
@@ -10,13 +14,19 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Phantom;
+import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.living.EnderManAngerEvent;
+import net.neoforged.neoforge.event.entity.living.LivingEquipmentChangeEvent;
 import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 public final class SoulboundDollsRuntimeEvents {
@@ -109,9 +119,20 @@ public final class SoulboundDollsRuntimeEvents {
         }
     }
 
+    @SubscribeEvent
+    public static void onEnderManAnger(EnderManAngerEvent event) {
+        if (!SoulboundDollsConfig.ENABLE_ENDER_MASK_PROTECTION.get()) {
+            return;
+        }
+
+        if (EnderMaskHelper.isProtected(event.getPlayer(), () -> CuriosDollLookup.hasEquippedDoll(event.getPlayer()))) {
+            event.setCanceled(true);
+        }
+    }
+
     /**
-     * Event-driven undead attraction: when an undead mob spawns or is loaded,
-     * add a goal to pathfind toward nearby dolls.
+     * Event-driven zombie attraction: when a zombie spawns or is loaded,
+     * add a goal to pathfind toward nearby dolls and doll item drops.
      * This replaces per-tick checks for much better performance.
      */
     @SubscribeEvent
@@ -124,76 +145,41 @@ public final class SoulboundDollsRuntimeEvents {
             return;
         }
 
-        // Only handle undead mobs with pathfinding capability
-        if (!(event.getEntity() instanceof net.minecraft.world.entity.PathfinderMob mob)) {
+        if (event.getEntity() instanceof Zombie zombie) {
+            double range = SoulboundDollsConfig.ATTRACT_UNDEAD_RANGE.get();
+            zombie.goalSelector.addGoal(5, new ZombieMoveToDollGoal(zombie, 1.0D, range));
+            ZombieDollCarryHelper.ensureHeadDollForSunProtection(zombie);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLivingEquipmentChange(LivingEquipmentChangeEvent event) {
+        if (!SoulboundDollsConfig.ENABLE_ATTRACT_UNDEAD.get()) {
             return;
         }
 
-        if (!mob.isInvertedHealAndHarm()) {
-            return; // Not an undead mob
+        if (event.getEntity().level().isClientSide()) {
+            return;
         }
 
-        // Add a low-priority goal to move toward dolls
-        // This is evaluated by vanilla AI system, not every tick by us
-        double range = SoulboundDollsConfig.ATTRACT_UNDEAD_RANGE.get();
-        mob.goalSelector.addGoal(5, new MoveTowardDollGoal(mob, 1.0, (int) range));
-    }
-
-    /**
-     * AI Goal that makes undead mobs move toward nearby player dolls.
-     * Uses vanilla AI system for efficient pathfinding.
-     */
-    private static class MoveTowardDollGoal extends net.minecraft.world.entity.ai.goal.Goal {
-        private final net.minecraft.world.entity.PathfinderMob mob;
-        private final double speedModifier;
-        private final int searchRange;
-        private PlayerDollEntity targetDoll;
-
-        public MoveTowardDollGoal(net.minecraft.world.entity.PathfinderMob mob, double speedModifier, int searchRange) {
-            this.mob = mob;
-            this.speedModifier = speedModifier;
-            this.searchRange = searchRange;
-        }
-
-        @Override
-        public boolean canUse() {
-            if (!SoulboundDollsConfig.ENABLE_ATTRACT_UNDEAD.get()) {
-                return false;
-            }
-
-            AABB searchBox = mob.getBoundingBox().inflate(searchRange);
-
-            List<PlayerDollEntity> nearbyDolls = mob.level()
-                    .getEntitiesOfClass(PlayerDollEntity.class, searchBox);
-
-            if (nearbyDolls.isEmpty()) {
-                return false;
-            }
-
-            // Find the closest doll
-            targetDoll = nearbyDolls.stream()
-                    .min((a, b) -> Double.compare(
-                            mob.distanceToSqr(a),
-                            mob.distanceToSqr(b)))
-                    .orElse(null);
-
-            return targetDoll != null;
-        }
-
-        @Override
-        public boolean canContinueToUse() {
-            if (targetDoll == null || targetDoll.isRemoved()) {
-                return false;
-            }
-
-            return mob.distanceToSqr(targetDoll) < searchRange * searchRange;
-        }
-
-        @Override
-        public void tick() {
-            if (targetDoll != null && !targetDoll.isRemoved()) {
-                mob.getNavigation().moveTo(targetDoll, speedModifier);
-            }
+        if (event.getEntity() instanceof Zombie zombie && event.getSlot() == EquipmentSlot.HEAD) {
+            ZombieDollCarryHelper.ensureHeadDollForSunProtection(zombie);
         }
     }
+
+    @SubscribeEvent
+    public static void onLivingDrops(LivingDropsEvent event) {
+        if (!SoulboundDollsConfig.ENABLE_ATTRACT_UNDEAD.get()) {
+            return;
+        }
+
+        if (!(event.getEntity() instanceof Zombie zombie)) {
+            return;
+        }
+
+        for (ItemStack hiddenDoll : ZombieDollCarryHelper.takeHiddenStoredDolls(zombie)) {
+            event.getDrops().add(new ItemEntity(zombie.level(), zombie.getX(), zombie.getY(), zombie.getZ(), hiddenDoll));
+        }
+    }
+
 }

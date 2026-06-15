@@ -21,6 +21,7 @@ public final class SoulboundDollsConfig {
     public static final ModConfigSpec.DoubleValue ATTRACT_UNDEAD_RANGE;
     public static final ModConfigSpec.BooleanValue ENABLE_REPEL_PHANTOMS;
     public static final ModConfigSpec.DoubleValue REPEL_PHANTOMS_RANGE;
+    public static final ModConfigSpec.BooleanValue ENABLE_ENDER_MASK_PROTECTION;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -81,6 +82,10 @@ public final class SoulboundDollsConfig {
         REPEL_PHANTOMS_RANGE = builder
                 .comment("Range in blocks within which phantoms are repelled by placed dolls.")
                 .defineInRange("repelPhantomsRange", 32.0, 0.0, 128.0);
+
+        ENABLE_ENDER_MASK_PROTECTION = builder
+                .comment("Treat a bound player doll worn in the head slot or optional compatible accessory slot as an enderman mask.")
+                .define("enableEnderMaskProtection", true);
 
         SPEC = builder.build();
     }

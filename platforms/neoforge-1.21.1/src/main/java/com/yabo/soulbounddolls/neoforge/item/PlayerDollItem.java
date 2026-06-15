@@ -119,6 +119,11 @@ public final class PlayerDollItem extends Item implements Equipable {
             tooltip.add(Component.translatable("item.soulbound_dolls.player_doll.tooltip.throwable")
                     .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
         }
+
+        if (SoulboundDollsConfig.ENABLE_ENDER_MASK_PROTECTION.get()) {
+            tooltip.add(Component.translatable("item.soulbound_dolls.player_doll.tooltip.ender_mask")
+                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+        }
     }
 
     @Override

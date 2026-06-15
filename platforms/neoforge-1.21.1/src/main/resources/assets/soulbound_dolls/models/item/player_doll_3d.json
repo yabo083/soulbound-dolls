@@ -122,12 +122,12 @@
 	],
 	"display": {
 		"thirdperson_righthand": {
-			"rotation": [66, -1, 19],
+			"rotation": [0, -1, 19],
 			"translation": [-0.25, 1.5, 1.25],
 			"scale": [0.61, 0.6, 0.6]
 		},
 		"thirdperson_lefthand": {
-			"rotation": [66, 1, -19],
+			"rotation": [0, 1, -19],
 			"translation": [0.25, 1.5, 1.25],
 			"scale": [0.61, 0.6, 0.6]
 		},
