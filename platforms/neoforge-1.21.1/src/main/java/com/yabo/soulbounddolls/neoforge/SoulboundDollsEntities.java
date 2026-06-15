@@ -1,6 +1,7 @@
 package com.yabo.soulbounddolls.neoforge;
 
 import com.yabo.soulbounddolls.common.DollConstants;
+import com.yabo.soulbounddolls.neoforge.entity.DollProjectileEntity;
 import com.yabo.soulbounddolls.neoforge.entity.PlayerDollEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
@@ -19,6 +20,15 @@ public final class SoulboundDollsEntities {
                     .clientTrackingRange(8)
                     .updateInterval(3)
                     .build("player_doll")
+    );
+
+    public static final DeferredHolder<EntityType<?>, EntityType<DollProjectileEntity>> DOLL_PROJECTILE = ENTITIES.register(
+            "doll_projectile",
+            () -> EntityType.Builder.<DollProjectileEntity>of(DollProjectileEntity::new, MobCategory.MISC)
+                    .sized(0.25F, 0.25F)
+                    .clientTrackingRange(4)
+                    .updateInterval(10)
+                    .build("doll_projectile")
     );
 
     private SoulboundDollsEntities() {
