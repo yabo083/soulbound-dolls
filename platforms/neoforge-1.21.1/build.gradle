@@ -84,6 +84,7 @@ tasks.withType(ProcessResources).configureEach {
 def copyJarToTestSourceJar = tasks.named("jar").flatMap { it.archiveFile }
 def copyJarToTestTargetDir = project.findProperty("testModsDir")
         ?: "E:\\SteamLibrary\\steamapps\\common\\PCL2\\.minecraft\\versions\\Mechanomania\\mods"
+def copyJarToTestUsesDefaultTarget = !project.hasProperty("testModsDir")
 def copyJarToTestJarPrefix = "${base.archivesName.get()}-"
 
 tasks.register("copyJarToTest") {
@@ -108,7 +109,7 @@ tasks.register("copyJarToTest") {
         }
         String normalizedTarget = targetDir.canonicalPath.replace('\\', '/')
         String expectedTarget = new File(copyJarToTestTargetDir).canonicalPath.replace('\\', '/')
-        if (normalizedTarget != expectedTarget || !normalizedTarget.endsWith('/Mechanomania/mods')) {
+        if (normalizedTarget != expectedTarget || (copyJarToTestUsesDefaultTarget && !normalizedTarget.endsWith('/Mechanomania/mods'))) {
             throw new GradleException("Refusing to copy into unexpected mods directory: ${targetDir}")
         }
 

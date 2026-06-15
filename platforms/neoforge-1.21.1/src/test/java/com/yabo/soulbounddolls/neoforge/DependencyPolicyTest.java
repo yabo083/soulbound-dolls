@@ -65,8 +65,13 @@ class DependencyPolicyTest {
         assertTrue(dependencies > modrinthRepository, "Dependencies block should follow repositories block");
         String repositoryBlock = buildFile.substring(modrinthRepository, dependencies);
 
-        assertTrue(repositoryBlock.contains("includeGroup \"maven.modrinth\""),
-                "Modrinth maven repository should be content-filtered to Modrinth coordinates");
+        Matcher includeGroupMatcher = Pattern.compile("includeGroup\\s+\"([^\"]+)\"").matcher(repositoryBlock);
+        List<String> includedGroups = new ArrayList<>();
+        while (includeGroupMatcher.find()) {
+            includedGroups.add(includeGroupMatcher.group(1));
+        }
+        assertEquals(List.of("maven.modrinth"), includedGroups,
+                "Modrinth maven repository should only include maven.modrinth");
     }
 
     @Test
@@ -77,6 +82,14 @@ class DependencyPolicyTest {
                 "copyJarToTest should support -PtestModsDir=... instead of requiring build file edits");
         assertFalse(buildFile.contains("def copyJarToTestTargetDir = \"E:\\\\SteamLibrary"),
                 "Machine-specific default path should not be the only copyJarToTest target source");
+    }
+
+    @Test
+    void copyJarToTestTargetSuffixCheckOnlyAppliesToDefaultPathMode() throws IOException {
+        String buildFile = readModuleFile("build.gradle");
+
+        assertTrue(buildFile.contains("!project.hasProperty(\"testModsDir\")"),
+                "Custom test mods directories should bypass the hardcoded Mechanomania suffix guard");
     }
 
     @Test
@@ -154,6 +167,7 @@ class DependencyPolicyTest {
         String manager = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/client/DollSkinManager.java");
         String resolveBody = methodBody(manager, "public ResourceLocation resolve");
 
+        assertFalse(resolveBody.isEmpty(), "resolve() body should be located for the policy check");
         assertFalse(resolveBody.contains("DollSkinDiagnostics.profileSummary"),
                 "resolve() is render-hot and should not compute diagnostic summaries before debug is enabled");
         assertTrue(manager.contains("LOGGER.isDebugEnabled()"),
@@ -212,7 +226,9 @@ class DependencyPolicyTest {
 
         assertTrue(architecture.contains("enableEnderMaskProtection"),
                 "Architecture config table should document the Ender mask toggle");
-        assertTrue(architecture.contains("最多 3"),
+        assertTrue(architecture.contains("最多 3")
+                        || architecture.contains("up to 3")
+                        || architecture.contains("max 3"),
                 "Architecture should document the zombie doll carry cap");
         assertTrue(architecture.contains("Enderman") || architecture.contains("末影人"),
                 "Architecture should document Enderman look protection when wearing dolls");
