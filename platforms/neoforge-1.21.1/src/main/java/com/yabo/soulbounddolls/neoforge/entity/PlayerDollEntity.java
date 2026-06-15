@@ -1,7 +1,10 @@
 package com.yabo.soulbounddolls.neoforge.entity;
 
 import com.yabo.soulbounddolls.common.PlayerDollProfile;
+import com.yabo.soulbounddolls.neoforge.DollSkinDiagnostics;
+import com.yabo.soulbounddolls.neoforge.DollProfileSynchronizer;
 import com.yabo.soulbounddolls.neoforge.SoulboundDollsConfig;
+import com.yabo.soulbounddolls.neoforge.SoulboundDollsNeoForge;
 import com.yabo.soulbounddolls.neoforge.data.DollPlayerRegistrySavedData;
 import com.yabo.soulbounddolls.neoforge.item.PlayerDollItem;
 import com.yabo.soulbounddolls.neoforge.skin.DollSkinResolver;
@@ -54,6 +57,7 @@ public final class PlayerDollEntity extends Entity {
     // never per tick. skinHealAttempted flips as soon as we either succeed or dispatch the request.
     private boolean skinHealAttempted;
     private boolean skinHealInFlight;
+    private boolean registrySyncAttempted;
 
     public PlayerDollEntity(EntityType<? extends PlayerDollEntity> entityType, Level level) {
         super(entityType, level);
@@ -66,6 +70,7 @@ public final class PlayerDollEntity extends Entity {
         this.entityData.set(SKIN_VALUE, profile.skinValue());
         this.entityData.set(SKIN_SIGNATURE, profile.skinSignature());
         this.entityData.set(SLIM_MODEL, profile.slimModel());
+        logProfile("entity-set-profile", profile);
     }
 
     public PlayerDollProfile getProfile() {
@@ -77,8 +82,25 @@ public final class PlayerDollEntity extends Entity {
                     entityData.get(SKIN_SIGNATURE),
                     entityData.get(SLIM_MODEL),
                     0L);
+            logProfile("entity-rebuild-profile-from-synced-data", profile);
         }
         return profile;
+    }
+
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
+        super.onSyncedDataUpdated(key);
+        if (key == PROFILE_UUID || key == PROFILE_NAME || key == SKIN_VALUE || key == SKIN_SIGNATURE || key == SLIM_MODEL) {
+            PlayerDollProfile syncedProfile = PlayerDollProfile.of(
+                    readSyncedUuid(),
+                    entityData.get(PROFILE_NAME),
+                    entityData.get(SKIN_VALUE),
+                    entityData.get(SKIN_SIGNATURE),
+                    entityData.get(SLIM_MODEL),
+                    0L);
+            profile = syncedProfile;
+            logProfile("entity-synced-data-updated", syncedProfile);
+        }
     }
 
     public Optional<UUID> getCreatorUuid() {
@@ -126,11 +148,31 @@ public final class PlayerDollEntity extends Entity {
 
         // Only attempt skin healing on server side, once per entity load
         if (!level().isClientSide) {
+            maybeSyncProfileFromRegistry();
             maybeHealMissingSkin();
         }
 
         // Note: Phantom repelling and undead attraction are now handled via AI goals
         // registered on entity spawn, not per-tick checks. See onAddedToWorld().
+    }
+
+    private void maybeSyncProfileFromRegistry() {
+        if (registrySyncAttempted || level().isClientSide || !(level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        registrySyncAttempted = true;
+        MinecraftServer server = serverLevel.getServer();
+        PlayerDollProfile current = getProfile();
+        DollProfileSynchronizer.updatedFromRegistry(current, DollPlayerRegistrySavedData.get(server).find(current.uuid()))
+                .ifPresent(updated -> {
+                    SoulboundDollsNeoForge.LOGGER.info(
+                            "{} entity-registry-sync entity={} before=[{}] after=[{}]",
+                            DollSkinDiagnostics.PREFIX,
+                            getId(),
+                            DollSkinDiagnostics.profileSummary(current),
+                            DollSkinDiagnostics.profileSummary(updated));
+                    setProfile(updated);
+                });
     }
 
     /**
@@ -204,6 +246,7 @@ public final class PlayerDollEntity extends Entity {
     @Override
     protected void addAdditionalSaveData(CompoundTag tag) {
         PlayerDollProfile savedProfile = getProfile();
+        logProfile("entity-save", savedProfile);
         tag.putUUID(PROFILE_UUID_TAG, savedProfile.uuid());
         tag.putString(PROFILE_NAME_TAG, savedProfile.name());
         tag.putString(SKIN_VALUE_TAG, savedProfile.skinValue());
@@ -221,13 +264,15 @@ public final class PlayerDollEntity extends Entity {
     @Override
     protected void readAdditionalSaveData(CompoundTag tag) {
         UUID savedUuid = tag.hasUUID(PROFILE_UUID_TAG) ? tag.getUUID(PROFILE_UUID_TAG) : new UUID(0L, 0L);
-        setProfile(PlayerDollProfile.of(
+        PlayerDollProfile savedProfile = PlayerDollProfile.of(
                 savedUuid,
                 tag.getString(PROFILE_NAME_TAG),
                 tag.getString(SKIN_VALUE_TAG),
                 tag.getString(SKIN_SIGNATURE_TAG),
                 tag.getBoolean(SLIM_MODEL_TAG),
-                tag.getLong(LAST_UPDATED_TAG)));
+                tag.getLong(LAST_UPDATED_TAG));
+        logProfile("entity-load", savedProfile);
+        setProfile(savedProfile);
 
         if (tag.hasUUID(CREATOR_UUID_TAG)) {
             creatorUuid = tag.getUUID(CREATOR_UUID_TAG);
@@ -237,6 +282,16 @@ public final class PlayerDollEntity extends Entity {
             creatorName = "";
         }
         entityData.set(DOLL_POSE, DollPose.byName(tag.getString(DOLL_POSE_TAG)).id);
+    }
+
+    private void logProfile(String event, PlayerDollProfile loggedProfile) {
+        SoulboundDollsNeoForge.LOGGER.info(
+                "{} {} side={} entity={} {}",
+                DollSkinDiagnostics.PREFIX,
+                event,
+                level().isClientSide ? "client" : "server",
+                getId(),
+                DollSkinDiagnostics.profileSummary(loggedProfile));
     }
 
     private void cyclePose(Player player) {

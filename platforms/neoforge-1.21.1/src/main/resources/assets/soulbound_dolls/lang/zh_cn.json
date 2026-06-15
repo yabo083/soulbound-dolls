@@ -39,5 +39,6 @@
   "message.soulbound_dolls.teleport.offline": "%s 不在线",
   "message.soulbound_dolls.teleport.wrong_dimension": "%s 在不同的维度",
   "message.soulbound_dolls.teleport.no_safe_location": "在玩家附近找不到安全位置",
-  "message.soulbound_dolls.teleport.success": "已传送到 %s"
+  "message.soulbound_dolls.teleport.success": "已传送到 %s",
+  "jade.soulbound_dolls.bound_player": "绑定玩家：%s"
 }

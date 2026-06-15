@@ -39,7 +39,16 @@ sourceSets.main.java.srcDir rootProject.file("common/src/main/java")
 sourceSets.test.compileClasspath += sourceSets.main.compileClasspath
 sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
 
+repositories {
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+    }
+}
+
 dependencies {
+    compileOnly "maven.modrinth:jade:15.10.5+neoforge"
+
     testImplementation platform("org.junit:junit-bom:5.10.2")
     testImplementation "org.junit.jupiter:junit-jupiter"
 }

@@ -39,5 +39,6 @@
   "message.soulbound_dolls.teleport.offline": "%s is not online",
   "message.soulbound_dolls.teleport.wrong_dimension": "%s is in a different dimension",
   "message.soulbound_dolls.teleport.no_safe_location": "Could not find a safe location near the player",
-  "message.soulbound_dolls.teleport.success": "Teleported to %s"
+  "message.soulbound_dolls.teleport.success": "Teleported to %s",
+  "jade.soulbound_dolls.bound_player": "Bound player: %s"
 }

@@ -3,6 +3,9 @@ package com.yabo.soulbounddolls.neoforge.client;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.yabo.soulbounddolls.common.PlayerDollProfile;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -79,5 +82,67 @@ class DollSkinManagerTest {
         PlayerDollProfile refreshed = PlayerDollProfile.of(uuid, "Steve", "skin-v2", "sig-v2", false, 200L);
         manager.resolve(refreshed);
         assertEquals(2, underlyingResolverCalls.get(), "Changed skin value should recompute and refresh the cache");
+    }
+
+    @Test
+    void resolveDoesNotCacheTemporaryDefaultPlayerTexture() {
+        AtomicInteger underlyingResolverCalls = new AtomicInteger();
+        ResourceLocation temporaryDefault = ResourceLocation.withDefaultNamespace("textures/entity/player/wide/steve.png");
+        ResourceLocation resolvedSkin = ResourceLocation.withDefaultNamespace("skins/resolved");
+        DollSkinManager manager = new DollSkinManager(gameProfile ->
+                underlyingResolverCalls.incrementAndGet() == 1 ? temporaryDefault : resolvedSkin,
+                ResourceLocation.fromNamespaceAndPath("soulbound_dolls", "textures/entity/default_doll.png"));
+        PlayerDollProfile profile = PlayerDollProfile.of(
+                UUID.fromString("00000000-0000-0000-0000-000000000005"), "Steve", "skin-value", "skin-signature", false, 100L);
+
+        assertEquals(temporaryDefault, manager.resolve(profile));
+        assertEquals(resolvedSkin, manager.resolve(profile));
+        assertEquals(resolvedSkin, manager.resolve(profile));
+        assertEquals(2, underlyingResolverCalls.get(), "Temporary default texture should not be cached, resolved texture should be cached");
+    }
+
+    @Test
+    void resolveUsesLoadedPlayerSkinBeforeProfileLookup() {
+        AtomicInteger underlyingResolverCalls = new AtomicInteger();
+        UUID uuid = UUID.fromString("00000000-0000-0000-0000-000000000006");
+        ResourceLocation loadedPlayerSkin = ResourceLocation.withDefaultNamespace("skins/already_loaded");
+        DollSkinManager manager = new DollSkinManager(
+                gameProfile -> {
+                    underlyingResolverCalls.incrementAndGet();
+                    return ResourceLocation.withDefaultNamespace("skins/slow_profile_lookup");
+                },
+                queriedUuid -> queriedUuid.equals(uuid) ? Optional.of(loadedPlayerSkin) : Optional.empty(),
+                ResourceLocation.fromNamespaceAndPath("soulbound_dolls", "textures/entity/default_doll.png"));
+        PlayerDollProfile profile = PlayerDollProfile.of(uuid, "LocalPlayer", "skin-value", "skin-signature", false, 100L);
+
+        assertEquals(loadedPlayerSkin, manager.resolve(profile));
+        assertEquals(0, underlyingResolverCalls.get(), "Loaded client player skin should avoid the slower profile lookup path");
+    }
+
+    @Test
+    void resolveDerivesSkinLocationFromProfileWhenLookupReturnsTemporaryDefault() {
+        AtomicInteger underlyingResolverCalls = new AtomicInteger();
+        ResourceLocation temporaryDefault = ResourceLocation.withDefaultNamespace("textures/entity/player/slim/noor.png");
+        DollSkinManager manager = new DollSkinManager(gameProfile -> {
+            underlyingResolverCalls.incrementAndGet();
+            return temporaryDefault;
+        }, ResourceLocation.fromNamespaceAndPath("soulbound_dolls", "textures/entity/default_doll.png"));
+        PlayerDollProfile profile = PlayerDollProfile.of(
+                UUID.fromString("00000000-0000-0000-0000-000000000007"),
+                "LocalPlayer",
+                textureValue("0123456789abcdef0123456789abcdef01234567"),
+                "skin-signature",
+                true,
+                100L);
+
+        assertEquals(ResourceLocation.withDefaultNamespace("skins/5e0b675fcef4b8463b5e051a5adfd6100012f548"), manager.resolve(profile));
+        assertEquals(1, underlyingResolverCalls.get(), "Vanilla lookup should still be started once so the texture can load");
+        assertEquals(ResourceLocation.withDefaultNamespace("skins/5e0b675fcef4b8463b5e051a5adfd6100012f548"), manager.resolve(profile));
+        assertEquals(1, underlyingResolverCalls.get(), "Derived profile texture should be cached like any resolved skin");
+    }
+
+    private static String textureValue(String skinHash) {
+        String json = "{\"textures\":{\"SKIN\":{\"url\":\"http://textures.minecraft.net/texture/" + skinHash + "\",\"metadata\":{\"model\":\"slim\"}}}}";
+        return Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
     }
 }
