@@ -3,10 +3,10 @@
 ## 0.1.2 - 2026-06-15
 
 ### Added
-- **Doll as Helmet**: Player dolls can now be equipped as helmet armor by any entity with a head slot (players and mobs). Controlled by `allowDollAsHelmet` config (default: true).
+- **Doll as Helmet**: Player dolls can now be equipped as helmet armor by any entity with a head slot (players and mobs). Worn dolls also act as an Enderman mask, preventing look anger when `enableEnderMaskProtection` is enabled (default: true). Controlled by `allowDollAsHelmet` config (default: true).
 - **Teleport to Player**: Press V (configurable keybind) while holding a bound doll to teleport near the bound player. Requires the player to be online and in the same dimension. Has configurable cooldown (`teleportCooldownSeconds`, default: 60). Controlled by `enableTeleportToPlayer` config (default: true).
 - **Throwable Dolls**: Hold right-click to charge and throw a doll item, dealing damage on impact. Damage is configurable (`throwDollDamage`, default: 4.0). The doll drops at the impact location. Controlled by `enableThrowDoll` config (default: true).
-- **Attract Undead Mobs**: Placed dolls attract undead mobs (zombies, skeletons, etc.) within a configurable range (`attractUndeadRange`, default: 24 blocks), similar to turtle eggs. Controlled by `enableAttractUndead` config (default: true).
+- **Attract Undead Mobs**: Placed dolls attract undead mobs (zombies, skeletons, etc.) within a configurable range (`attractUndeadRange`, default: 24 blocks), similar to turtle eggs. Zombies steal and carry up to 3 dolls, gain sunlight protection while carrying, and drop carried dolls on death. Controlled by `enableAttractUndead` config (default: true).
 - **Repel Phantoms**: Placed dolls repel phantoms within a configurable range (`repelPhantomsRange`, default: 32 blocks), clearing their targets and preventing attacks. Controlled by `enableRepelPhantoms` config (default: true).
 
 ### Technical

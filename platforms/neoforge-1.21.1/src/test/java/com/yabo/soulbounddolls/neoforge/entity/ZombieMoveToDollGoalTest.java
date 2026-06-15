@@ -1,6 +1,7 @@
 package com.yabo.soulbounddolls.neoforge.entity;
 
 import java.util.List;
+import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
 
@@ -8,6 +9,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ZombieMoveToDollGoalTest {
+    @Test
+    void declaresMoveFlagBecauseItControlsNavigation() {
+        ZombieMoveToDollGoal goal = new ZombieMoveToDollGoal(null, 1.0D, 24.0D);
+
+        assertTrue(goal.getFlags().contains(Goal.Flag.MOVE));
+    }
+
     @Test
     void choosesNearestAcceptableTarget() {
         ZombieMoveToDollGoal.DollTarget farther = new ZombieMoveToDollGoal.DollTarget(new Vec3(4.0D, 0.0D, 0.0D));

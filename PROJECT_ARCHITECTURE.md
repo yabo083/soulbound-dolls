@@ -109,6 +109,7 @@ TTL（默认 60 分钟）：在 TTL 窗口内复用已存资料，不重复请�
 | `attractUndeadRange` | `24.0` | 吸引亡灵生物的范围（方块） |
 | `enableRepelPhantoms` | `true` | 放置的玩偶驱逐幻翼 |
 | `repelPhantomsRange` | `32.0` | 驱逐幻翼的范围（方块） |
+| `enableEnderMaskProtection` | `true` | 头部/兼容饰品槽佩戴绑定玩偶时提供 Enderman 注视保护 |
 
 ## 7. 权限与命令访问模型
 
@@ -129,7 +130,8 @@ TTL（默认 60 分钟）：在 TTL 窗口内复用已存资料，不重复请�
   操作员（权限等级 2 / 开作弊单人）可拾取任意玩偶（含他人绑定的）。
 
 ### 8.2 物品交互（手持玩偶）- 0.1.2 新增
-- **作为头盔装备**：玩偶物品实现 `Equipable` 接口，可装备到头部槽位（`allowDollAsHelmet` 控制）。
+- **作为头盔装备**：玩偶物品实现 `Equipable` 接口，可装备到头部槽位（`allowDollAsHelmet` 控制）。佩戴绑定玩偶时，
+  `EnderMaskHelper` 会阻止 Enderman 因玩家注视而被激怒（`enableEnderMaskProtection` 控制；兼容饰品槽通过可选反射查询）。
 - **扔出玩偶**：长按右键蓄力（最少 10 tick），松开后扔出 `DollProjectileEntity`。投射物击中实体时造成伤害（`throwDollDamage`），
   击中后掉落玩偶物品。使用弓箭蓄力动画，有 1 秒冷却时间（`enableThrowDoll` 控制）。
 - **传送到玩家**：手持绑定玩偶时按 V 键（可配置），向服务器发送 `TeleportToDollPlayerPacket`。
@@ -155,11 +157,12 @@ TTL（默认 60 分钟）：在 TTL 窗口内复用已存资料，不重复请�
 - 清除幻翼的攻击目标（`setTarget(null)`），使其无法攻击附近玩家。
 - 性能考虑：仅在服务端运行，使用 AABB 范围查询。
 
-### 10.2 吸引亡灵（`PlayerDollEntity.attractUndead()`）
-- 每 20 tick（1 秒）在 `attractUndeadRange` 范围内搜索 `Mob` 实体。
-- 检查 `mob.isInvertedHealAndHarm()` 判定是否为亡灵生物（僵尸、骷髅等）。
-- 使亡灵生物导航到玩偶位置（`mob.getNavigation().moveTo(this, 1.0)`）。
-- 类似海龟蛋的吸引机制，用于建造陷阱或引导生物。
+### 10.2 吸引亡灵与僵尸搬运（`ZombieMoveToDollGoal` / `ZombieDollCarryHelper`）
+- `SoulboundDollsRuntimeEvents` 在亡灵实体加入世界时注册目标 AI，避免全局每 tick 维护；`getAvailableGoals()` 用于重载去重。
+- `ZombieMoveToDollGoal` 只让未携带玩偶的僵尸搜索目标，优先选择最近的放置玩偶或掉落的绑定玩偶，并声明 `Goal.Flag.MOVE` 独占移动控制。
+- 僵尸接近后会偷取/搬运玩偶，最多 3 个：头部、主手、副手优先作为可见槽位，额外玩偶使用隐藏 NBT 列表 `soulbound_dolls:carried_dolls` 存储。
+- 携带任意玩偶的僵尸获得阳光保护；如果头部为空，辅助逻辑会把手持或隐藏玩偶提升到头部槽位以维持可见保护。
+- 僵尸死亡时会保证掉落所有可见和隐藏携带的玩偶，避免玩家物品被吞。
 
 ## 11. 明确推迟的扩展点
 

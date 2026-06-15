@@ -22,6 +22,8 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -63,6 +65,7 @@ public record TeleportToDollPlayerPacket() implements CustomPacketPayload {
             // Check cooldown
             long now = System.currentTimeMillis();
             long cooldownMs = SoulboundDollsConfig.TELEPORT_COOLDOWN_SECONDS.get() * 1000L;
+            pruneExpiredCooldowns(COOLDOWNS, now, cooldownMs);
             Long lastTeleport = COOLDOWNS.get(sender.getUUID());
             if (lastTeleport != null && (now - lastTeleport) < cooldownMs) {
                 long remainingSec = (cooldownMs - (now - lastTeleport)) / 1000L;
@@ -162,20 +165,28 @@ public record TeleportToDollPlayerPacket() implements CustomPacketPayload {
     private static BlockPos findSafeTeleportPos(ServerLevel level, Vec3 targetPos) {
         BlockPos center = BlockPos.containing(targetPos);
 
-        // Try positions in a 3x3 area around the target
-        for (int xOff = -1; xOff <= 1; xOff++) {
-            for (int zOff = -1; zOff <= 1; zOff++) {
-                BlockPos candidate = center.offset(xOff, 0, zOff);
-
-                // Check if position is safe (solid ground, air above)
-                if (level.getBlockState(candidate.below()).isSolid() &&
-                        level.getBlockState(candidate).isAir() &&
-                        level.getBlockState(candidate.above()).isAir()) {
-                    return candidate;
-                }
+        for (BlockPos candidate : safeTeleportCandidates(center)) {
+            if (level.getBlockState(candidate.below()).isSolid() &&
+                    level.getBlockState(candidate).isAir() &&
+                    level.getBlockState(candidate.above()).isAir()) {
+                return candidate;
             }
         }
 
         return null;
+    }
+
+    static List<BlockPos> safeTeleportCandidates(BlockPos center) {
+        List<BlockPos> candidates = new ArrayList<>(49);
+        for (int xOff = -3; xOff <= 3; xOff++) {
+            for (int zOff = -3; zOff <= 3; zOff++) {
+                candidates.add(center.offset(xOff, 0, zOff));
+            }
+        }
+        return candidates;
+    }
+
+    static void pruneExpiredCooldowns(Map<UUID, Long> cooldowns, long now, long cooldownMs) {
+        cooldowns.entrySet().removeIf(entry -> now - entry.getValue() >= cooldownMs);
     }
 }

@@ -1,13 +1,16 @@
 package com.yabo.soulbounddolls.neoforge.client;
 
 import com.yabo.soulbounddolls.neoforge.entity.DollProjectileEntity;
+import com.yabo.soulbounddolls.neoforge.item.PlayerDollItem;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemDisplayContext;
-import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -36,14 +39,14 @@ public class DollProjectileRenderer extends EntityRenderer<DollProjectileEntity>
         poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(rotation * 0.5F));
 
         // Create the item stack to render
-        ItemStack dollStack = com.yabo.soulbounddolls.neoforge.item.PlayerDollItem.createBoundDoll(entity.getProfile());
+        ItemStack dollStack = PlayerDollItem.createBoundDoll(entity.getProfile());
 
         // Render the item
         itemRenderer.renderStatic(
                 dollStack,
                 ItemDisplayContext.GROUND,
                 packedLight,
-                net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,
+                OverlayTexture.NO_OVERLAY,
                 poseStack,
                 buffer,
                 entity.level(),
@@ -56,7 +59,10 @@ public class DollProjectileRenderer extends EntityRenderer<DollProjectileEntity>
 
     @Override
     public ResourceLocation getTextureLocation(DollProjectileEntity entity) {
-        // Not used since we render via ItemRenderer
-        return null;
+        return textureLocation();
+    }
+
+    static ResourceLocation textureLocation() {
+        return TextureAtlas.LOCATION_BLOCKS;
     }
 }

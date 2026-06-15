@@ -75,6 +75,7 @@ public class DollProjectileEntity extends ThrowableItemProjectile {
         this.entityData.set(SKIN_VALUE, profile.skinValue());
         this.entityData.set(SKIN_SIGNATURE, profile.skinSignature());
         this.entityData.set(SLIM_MODEL, profile.slimModel());
+        this.profile = profile;
     }
 
     public PlayerDollProfile getProfile() {
@@ -88,6 +89,14 @@ public class DollProjectileEntity extends ThrowableItemProjectile {
                     0L);
         }
         return profile;
+    }
+
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
+        super.onSyncedDataUpdated(key);
+        if (key == PROFILE_UUID || key == PROFILE_NAME || key == SKIN_VALUE || key == SKIN_SIGNATURE || key == SLIM_MODEL) {
+            profile = null;
+        }
     }
 
     @Override

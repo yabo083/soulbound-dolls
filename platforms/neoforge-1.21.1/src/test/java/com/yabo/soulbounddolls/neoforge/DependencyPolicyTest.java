@@ -56,6 +56,30 @@ class DependencyPolicyTest {
     }
 
     @Test
+    void modrinthRepositoryOnlyServesModrinthCoordinates() throws IOException {
+        String buildFile = readModuleFile("build.gradle");
+        int modrinthRepository = buildFile.indexOf("name = \"Modrinth\"");
+        int dependencies = buildFile.indexOf("dependencies {");
+
+        assertTrue(modrinthRepository >= 0, "Modrinth repository should stay explicit for optional integrations");
+        assertTrue(dependencies > modrinthRepository, "Dependencies block should follow repositories block");
+        String repositoryBlock = buildFile.substring(modrinthRepository, dependencies);
+
+        assertTrue(repositoryBlock.contains("includeGroup \"maven.modrinth\""),
+                "Modrinth maven repository should be content-filtered to Modrinth coordinates");
+    }
+
+    @Test
+    void copyJarToTestTargetCanBeConfiguredWithGradleProperty() throws IOException {
+        String buildFile = readModuleFile("build.gradle");
+
+        assertTrue(buildFile.contains("testModsDir"),
+                "copyJarToTest should support -PtestModsDir=... instead of requiring build file edits");
+        assertFalse(buildFile.contains("def copyJarToTestTargetDir = \"E:\\\\SteamLibrary"),
+                "Machine-specific default path should not be the only copyJarToTest target source");
+    }
+
+    @Test
     void curiosLookupDoesNotDirectlyImportCuriosApi() throws IOException {
         String curiosLookup = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/compat/curios/CuriosDollLookup.java");
 
@@ -126,6 +150,17 @@ class DependencyPolicyTest {
     }
 
     @Test
+    void dollSkinResolveDoesNotComputeDiagnosticsBeforeDebugGuard() throws IOException {
+        String manager = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/client/DollSkinManager.java");
+        String resolveBody = methodBody(manager, "public ResourceLocation resolve");
+
+        assertFalse(resolveBody.contains("DollSkinDiagnostics.profileSummary"),
+                "resolve() is render-hot and should not compute diagnostic summaries before debug is enabled");
+        assertTrue(manager.contains("LOGGER.isDebugEnabled()"),
+                "Debug diagnostics should be guarded before summaries are computed");
+    }
+
+    @Test
     void teleportPacketCapturesOriginBeforeTeleportSound() throws IOException {
         String packet = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/network/TeleportToDollPlayerPacket.java");
         int originIndex = packet.indexOf("BlockPos originPos = sender.blockPosition();");
@@ -136,6 +171,72 @@ class DependencyPolicyTest {
                 "Origin position must be captured before teleport mutates sender position");
         assertTrue(soundIndex > teleportIndex,
                 "Departure sound should use captured origin position after teleport");
+    }
+
+    @Test
+    void projectileProfileCacheInvalidatesWhenSyncedProfileDataChanges() throws IOException {
+        String projectile = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/entity/DollProjectileEntity.java");
+
+        assertTrue(projectile.contains("public void onSyncedDataUpdated(EntityDataAccessor<?> key)"),
+                "DollProjectileEntity should invalidate its memoized profile when client synced data updates");
+        assertTrue(projectile.contains("profile = null;"),
+                "Projectile profile cache should be cleared so getProfile() rebuilds from updated synced data");
+    }
+
+    @Test
+    void playerDollSyncedProfileRebuildPreservesLastUpdated() throws IOException {
+        String entity = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/entity/PlayerDollEntity.java");
+        String syncedUpdateBody = methodBody(entity, "public void onSyncedDataUpdated");
+
+        assertTrue(syncedUpdateBody.contains("lastUpdated"),
+                "Synced profile rebuild should preserve existing lastUpdated metadata");
+        assertFalse(syncedUpdateBody.contains(",\n                    0L);"),
+                "Synced profile rebuild should not hardcode lastUpdated to 0L");
+    }
+
+    @Test
+    void changelogDocumentsEnderMaskAndZombieCarryFeatures() throws IOException {
+        String changelog = readRootFile("CHANGELOG.md");
+
+        assertTrue(changelog.contains("Enderman"),
+                "Changelog should mention Enderman look protection from worn dolls");
+        assertTrue(changelog.contains("up to 3") || changelog.contains("max 3"),
+                "Changelog should mention zombies can carry up to 3 dolls");
+        assertTrue(changelog.contains("drop"),
+                "Changelog should mention carried dolls drop on zombie death");
+    }
+
+    @Test
+    void projectArchitectureDocumentsEnderMaskAndZombieCarryFeatures() throws IOException {
+        String architecture = readRootFile("PROJECT_ARCHITECTURE.md");
+
+        assertTrue(architecture.contains("enableEnderMaskProtection"),
+                "Architecture config table should document the Ender mask toggle");
+        assertTrue(architecture.contains("最多 3"),
+                "Architecture should document the zombie doll carry cap");
+        assertTrue(architecture.contains("Enderman") || architecture.contains("末影人"),
+                "Architecture should document Enderman look protection when wearing dolls");
+    }
+
+    private static String methodBody(String source, String signatureStart) {
+        int signatureIndex = source.indexOf(signatureStart);
+        if (signatureIndex < 0) {
+            return "";
+        }
+        int bodyStart = source.indexOf('{', signatureIndex);
+        int depth = 0;
+        for (int index = bodyStart; index < source.length(); index++) {
+            char current = source.charAt(index);
+            if (current == '{') {
+                depth++;
+            } else if (current == '}') {
+                depth--;
+                if (depth == 0) {
+                    return source.substring(bodyStart, index + 1);
+                }
+            }
+        }
+        return source.substring(bodyStart);
     }
 
     private static List<DependencyBlock> dependencyBlocks(String toml) {
@@ -188,6 +289,10 @@ class DependencyPolicyTest {
         return Files.readString(modulePath(relativePath), StandardCharsets.UTF_8);
     }
 
+    private static String readRootFile(String relativePath) throws IOException {
+        return Files.readString(rootPath(relativePath), StandardCharsets.UTF_8);
+    }
+
     private static Path modulePath(String relativePath) {
         Path workingDirectory = Path.of("").toAbsolutePath();
         for (Path candidate : List.of(workingDirectory, workingDirectory.resolve("platforms/neoforge-1.21.1"))) {
@@ -197,6 +302,18 @@ class DependencyPolicyTest {
             }
         }
         throw new IllegalStateException("Cannot locate NeoForge 1.21.1 project directory from " + workingDirectory);
+    }
+
+    private static Path rootPath(String relativePath) {
+        Path candidate = Path.of("").toAbsolutePath();
+        while (candidate != null) {
+            if (Files.isRegularFile(candidate.resolve("settings.gradle"))
+                    && Files.isDirectory(candidate.resolve("platforms"))) {
+                return candidate.resolve(relativePath);
+            }
+            candidate = candidate.getParent();
+        }
+        throw new IllegalStateException("Cannot locate project root");
     }
 
     private record DependencyBlock(String modId, String type) {

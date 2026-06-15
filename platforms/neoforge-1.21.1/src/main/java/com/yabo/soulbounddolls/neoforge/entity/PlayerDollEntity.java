@@ -91,13 +91,14 @@ public final class PlayerDollEntity extends Entity {
     public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
         super.onSyncedDataUpdated(key);
         if (key == PROFILE_UUID || key == PROFILE_NAME || key == SKIN_VALUE || key == SKIN_SIGNATURE || key == SLIM_MODEL) {
+            long lastUpdated = profile == null ? 0L : profile.lastUpdated();
             PlayerDollProfile syncedProfile = PlayerDollProfile.of(
                     readSyncedUuid(),
                     entityData.get(PROFILE_NAME),
                     entityData.get(SKIN_VALUE),
                     entityData.get(SKIN_SIGNATURE),
                     entityData.get(SLIM_MODEL),
-                    0L);
+                    lastUpdated);
             profile = syncedProfile;
             logProfile("entity-synced-data-updated", syncedProfile);
         }

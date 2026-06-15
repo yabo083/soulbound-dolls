@@ -77,7 +77,7 @@ public final class DollSkinManager {
      */
     public ResourceLocation resolve(PlayerDollProfile profile) {
         if (profile == null || !profile.hasSkin()) {
-            SoulboundDollsNeoForge.LOGGER.debug("{} client-resolve no-profile-or-skin {}", DollSkinDiagnostics.PREFIX, DollSkinDiagnostics.profileSummary(profile));
+            logResolveProfile("no-profile-or-skin", profile);
             return defaultTexture;
         }
 
@@ -85,11 +85,7 @@ public final class DollSkinManager {
         String skinValue = profile.skinValue();
         CachedSkin cached = cache.get(uuid);
         if (cached != null && cached.matches(skinValue) && !cached.allowsLoadedPlayerRefresh()) {
-            SoulboundDollsNeoForge.LOGGER.debug(
-                    "{} client-resolve cache-hit {} {}",
-                    DollSkinDiagnostics.PREFIX,
-                    DollSkinDiagnostics.profileSummary(profile),
-                    DollSkinDiagnostics.textureSummary(cached.texture()));
+            logResolveTexture("cache-hit", profile, cached.texture());
             return cached.texture();
         }
 
@@ -97,54 +93,51 @@ public final class DollSkinManager {
         if (loadedPlayerSkin.isPresent() && !isTemporaryDefaultPlayerTexture(loadedPlayerSkin.get())) {
             ResourceLocation texture = loadedPlayerSkin.get();
             cache.put(uuid, new CachedSkin(skinValue, texture, false));
-            SoulboundDollsNeoForge.LOGGER.debug(
-                    "{} client-resolve loaded-player-hit {} {}",
-                    DollSkinDiagnostics.PREFIX,
-                    DollSkinDiagnostics.profileSummary(profile),
-                    DollSkinDiagnostics.textureSummary(texture));
+            logResolveTexture("loaded-player-hit", profile, texture);
             return texture;
         }
-        loadedPlayerSkin.ifPresent(texture -> SoulboundDollsNeoForge.LOGGER.debug(
-                "{} client-resolve loaded-player-temporary-default {} {}",
-                DollSkinDiagnostics.PREFIX,
-                DollSkinDiagnostics.profileSummary(profile),
-                DollSkinDiagnostics.textureSummary(texture)));
+        loadedPlayerSkin.ifPresent(texture -> logResolveTexture("loaded-player-temporary-default", profile, texture));
         if (cached != null && cached.matches(skinValue)) {
-            SoulboundDollsNeoForge.LOGGER.debug(
-                    "{} client-resolve cache-hit {} {}",
-                    DollSkinDiagnostics.PREFIX,
-                    DollSkinDiagnostics.profileSummary(profile),
-                    DollSkinDiagnostics.textureSummary(cached.texture()));
+            logResolveTexture("cache-hit", profile, cached.texture());
             return cached.texture();
         }
 
         ResourceLocation texture = skinResolver.apply(toGameProfile(profile));
         if (!isTemporaryDefaultPlayerTexture(texture)) {
             cache.put(uuid, new CachedSkin(skinValue, texture, false));
-            SoulboundDollsNeoForge.LOGGER.debug(
-                    "{} client-resolve profile-lookup-hit {} {}",
-                    DollSkinDiagnostics.PREFIX,
-                    DollSkinDiagnostics.profileSummary(profile),
-                    DollSkinDiagnostics.textureSummary(texture));
+            logResolveTexture("profile-lookup-hit", profile, texture);
         } else {
             Optional<ResourceLocation> packedTexture = profileTextureResolver.apply(profile);
             if (packedTexture.isPresent()) {
                 ResourceLocation packedLocation = packedTexture.get();
                 cache.put(uuid, new CachedSkin(skinValue, packedLocation, true));
-                SoulboundDollsNeoForge.LOGGER.debug(
-                        "{} client-resolve profile-property-hit {} {}",
-                        DollSkinDiagnostics.PREFIX,
-                        DollSkinDiagnostics.profileSummary(profile),
-                        DollSkinDiagnostics.textureSummary(packedLocation));
+                logResolveTexture("profile-property-hit", profile, packedLocation);
                 return packedLocation;
             }
+            logResolveTexture("profile-lookup-temporary-default", profile, texture);
+        }
+        return texture;
+    }
+
+    private static void logResolveProfile(String event, PlayerDollProfile profile) {
+        if (SoulboundDollsNeoForge.LOGGER.isDebugEnabled()) {
             SoulboundDollsNeoForge.LOGGER.debug(
-                    "{} client-resolve profile-lookup-temporary-default {} {}",
+                    "{} client-resolve {} {}",
                     DollSkinDiagnostics.PREFIX,
+                    event,
+                    DollSkinDiagnostics.profileSummary(profile));
+        }
+    }
+
+    private static void logResolveTexture(String event, PlayerDollProfile profile, ResourceLocation texture) {
+        if (SoulboundDollsNeoForge.LOGGER.isDebugEnabled()) {
+            SoulboundDollsNeoForge.LOGGER.debug(
+                    "{} client-resolve {} {} {}",
+                    DollSkinDiagnostics.PREFIX,
+                    event,
                     DollSkinDiagnostics.profileSummary(profile),
                     DollSkinDiagnostics.textureSummary(texture));
         }
-        return texture;
     }
 
     /** Clears all cached textures; used by tests and on resource reloads. */

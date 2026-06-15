@@ -5,6 +5,7 @@ import com.yabo.soulbounddolls.neoforge.item.DollStackHelper;
 import com.yabo.soulbounddolls.neoforge.item.PlayerDollItem;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.world.entity.Entity;
@@ -27,6 +28,7 @@ public final class ZombieMoveToDollGoal extends Goal {
         this.zombie = zombie;
         this.speedModifier = speedModifier;
         this.searchRange = searchRange;
+        setFlags(EnumSet.of(Goal.Flag.MOVE));
     }
 
     @Override

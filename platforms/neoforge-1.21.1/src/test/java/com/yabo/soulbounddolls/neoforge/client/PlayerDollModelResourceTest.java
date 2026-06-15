@@ -81,6 +81,7 @@ class PlayerDollModelResourceTest {
     }
 
     private static void assertDisplayRotationX(JsonObject display, String key, float x) {
+        assertTrue(display.has(key), () -> "display is missing " + key);
         JsonElement rotation = display.getAsJsonObject(key).get("rotation");
         assertNotNull(rotation, () -> key + " is missing rotation");
         assertEquals(x, rotation.getAsJsonArray().get(0).getAsFloat(), 0.0001F, key + " rotation x");

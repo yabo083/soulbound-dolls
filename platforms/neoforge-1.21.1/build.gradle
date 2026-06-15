@@ -43,6 +43,9 @@ repositories {
     maven {
         name = "Modrinth"
         url = "https://api.modrinth.com/maven"
+        content {
+            includeGroup "maven.modrinth"
+        }
     }
 }
 
@@ -79,7 +82,8 @@ tasks.withType(ProcessResources).configureEach {
 }
 
 def copyJarToTestSourceJar = tasks.named("jar").flatMap { it.archiveFile }
-def copyJarToTestTargetDir = "E:\\SteamLibrary\\steamapps\\common\\PCL2\\.minecraft\\versions\\Mechanomania\\mods"
+def copyJarToTestTargetDir = project.findProperty("testModsDir")
+        ?: "E:\\SteamLibrary\\steamapps\\common\\PCL2\\.minecraft\\versions\\Mechanomania\\mods"
 def copyJarToTestJarPrefix = "${base.archivesName.get()}-"
 
 tasks.register("copyJarToTest") {
