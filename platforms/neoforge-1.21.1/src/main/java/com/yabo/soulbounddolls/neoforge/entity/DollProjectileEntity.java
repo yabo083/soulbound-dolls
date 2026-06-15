@@ -50,12 +50,13 @@ public class DollProjectileEntity extends ThrowableItemProjectile {
         this.profile = profile;
         if (profile != null) {
             setProfileData(profile);
+            setItem(PlayerDollItem.createBoundDoll(profile));
         }
     }
 
     @Override
     protected Item getDefaultItem() {
-        return null; // We handle item creation ourselves
+        return DollProjectileDefaults.defaultItem();
     }
 
     @Override
