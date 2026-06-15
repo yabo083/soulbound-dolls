@@ -29,5 +29,14 @@
   "config.soulbound_dolls.enableOnlineSkinRefresh": "Refresh known player skin textures from Mojang services after login or admin command use.",
   "config.soulbound_dolls.allowPatParticles": "Allow player doll pat interactions to emit heart particles.",
   "config.soulbound_dolls.allowPickupByAnyone": "Allow any player to pick up placed player dolls. When false, only the creator may pick them up.",
-  "config.soulbound_dolls.skinRefreshTtlMinutes": "Minimum minutes between online skin refreshes for the same player. Cached skins are reused within this window."
+  "config.soulbound_dolls.skinRefreshTtlMinutes": "Minimum minutes between online skin refreshes for the same player. Cached skins are reused within this window.",
+  "key.categories.soulbound_dolls": "Soulbound Dolls",
+  "key.soulbound_dolls.teleport_to_player": "Teleport to Doll Player",
+  "message.soulbound_dolls.teleport.disabled": "Teleport feature is disabled in config",
+  "message.soulbound_dolls.teleport.cooldown": "Teleport on cooldown (%s seconds remaining)",
+  "message.soulbound_dolls.teleport.no_doll": "You must hold a bound doll to teleport",
+  "message.soulbound_dolls.teleport.offline": "%s is not online",
+  "message.soulbound_dolls.teleport.wrong_dimension": "%s is in a different dimension",
+  "message.soulbound_dolls.teleport.no_safe_location": "Could not find a safe location near the player",
+  "message.soulbound_dolls.teleport.success": "Teleported to %s"
 }
