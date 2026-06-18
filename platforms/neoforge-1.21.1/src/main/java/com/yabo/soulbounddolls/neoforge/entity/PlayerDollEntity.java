@@ -363,6 +363,7 @@ public final class PlayerDollEntity extends Entity {
         STANDING(1, "standing"),
         CUTE_IDLE(2, "cute_idle");
 
+        public static final int COUNT = values().length;
         private static final DollPose[] VALUES = values();
 
         private final int id;
@@ -373,11 +374,19 @@ public final class PlayerDollEntity extends Entity {
             this.serializedName = serializedName;
         }
 
-        private DollPose next() {
+        public DollPose next() {
             return VALUES[(ordinal() + 1) % VALUES.length];
         }
 
-        private static DollPose byId(int id) {
+        public int id() {
+            return id;
+        }
+
+        public String serializedName() {
+            return serializedName;
+        }
+
+        public static DollPose byId(int id) {
             for (DollPose pose : VALUES) {
                 if (pose.id == id) {
                     return pose;

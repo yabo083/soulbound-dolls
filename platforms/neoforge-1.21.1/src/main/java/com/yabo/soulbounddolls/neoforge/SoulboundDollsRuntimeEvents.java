@@ -7,7 +7,9 @@ import com.yabo.soulbounddolls.neoforge.entity.EnderMaskHelper;
 import com.yabo.soulbounddolls.neoforge.entity.PlayerDollEntity;
 import com.yabo.soulbounddolls.neoforge.entity.ZombieDollCarryHelper;
 import com.yabo.soulbounddolls.neoforge.entity.ZombieMoveToDollGoal;
+import com.yabo.soulbounddolls.neoforge.item.DollStackHelper;
 import com.yabo.soulbounddolls.neoforge.item.PlayerDollItem;
+import com.yabo.soulbounddolls.neoforge.network.CycleWornDollPosePacket;
 import com.yabo.soulbounddolls.neoforge.skin.DollSkinResolver;
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +21,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Phantom;
 import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -27,6 +30,7 @@ import net.neoforged.neoforge.event.entity.living.EnderManAngerEvent;
 import net.neoforged.neoforge.event.entity.living.LivingEquipmentChangeEvent;
 import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 public final class SoulboundDollsRuntimeEvents {
@@ -120,6 +124,26 @@ public final class SoulboundDollsRuntimeEvents {
     }
 
     @SubscribeEvent
+    public static void onZombieChangeTarget(LivingChangeTargetEvent event) {
+        if (!SoulboundDollsConfig.ENABLE_ATTRACT_UNDEAD.get()) {
+            return;
+        }
+
+        if (!(event.getEntity() instanceof Zombie zombie)) {
+            return;
+        }
+
+        LivingEntity newTarget = event.getNewAboutToBeSetTarget();
+        if (!(newTarget instanceof Player player)) {
+            return;
+        }
+
+        if (ZombieDollCarryHelper.shouldAvoidTargetingOwner(zombie, player.getUUID())) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
     public static void onEnderManAnger(EnderManAngerEvent event) {
         if (!SoulboundDollsConfig.ENABLE_ENDER_MASK_PROTECTION.get()) {
             return;
@@ -151,6 +175,7 @@ public final class SoulboundDollsRuntimeEvents {
                 zombie.goalSelector.addGoal(5, new ZombieMoveToDollGoal(zombie, 1.0D, range));
             }
             ZombieDollCarryHelper.ensureHeadDollForSunProtection(zombie);
+            ZombieDollCarryHelper.applyFriendlyState(zombie);
         }
     }
 
@@ -161,16 +186,48 @@ public final class SoulboundDollsRuntimeEvents {
 
     @SubscribeEvent
     public static void onLivingEquipmentChange(LivingEquipmentChangeEvent event) {
-        if (!SoulboundDollsConfig.ENABLE_ATTRACT_UNDEAD.get()) {
+        if (event.getEntity().level().isClientSide()) {
             return;
         }
 
-        if (event.getEntity().level().isClientSide()) {
+        if (event.getSlot() == EquipmentSlot.HEAD) {
+            normalizeHeadDollStack(event.getEntity(), event.getTo());
+        }
+
+        if (event.getEntity() instanceof Player && event.getSlot() == EquipmentSlot.HEAD) {
+            CycleWornDollPosePacket.resetPose(event.getFrom());
+        }
+
+        if (!SoulboundDollsConfig.ENABLE_ATTRACT_UNDEAD.get()) {
             return;
         }
 
         if (event.getEntity() instanceof Zombie zombie && event.getSlot() == EquipmentSlot.HEAD) {
             ZombieDollCarryHelper.ensureHeadDollForSunProtection(zombie);
+            ZombieDollCarryHelper.applyFriendlyState(zombie);
+        }
+    }
+
+    private static void normalizeHeadDollStack(LivingEntity entity, ItemStack stack) {
+        if (!DollStackHelper.isPlayerDoll(stack) || stack.getCount() <= 1) {
+            return;
+        }
+
+        ItemStack remainder = stack.copyWithCount(stack.getCount() - 1);
+        entity.setItemSlot(EquipmentSlot.HEAD, DollStackHelper.singleHeadSlotDoll(stack));
+        if (!remainder.isEmpty()) {
+            entity.spawnAtLocation(remainder);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLivingIncomingDamage(LivingIncomingDamageEvent event) {
+        if (!(event.getEntity() instanceof Zombie zombie)) {
+            return;
+        }
+
+        if (event.getSource().getEntity() != null || event.getSource().getDirectEntity() != null) {
+            ZombieDollCarryHelper.resetFriendlyState(zombie);
         }
     }
 
@@ -184,8 +241,13 @@ public final class SoulboundDollsRuntimeEvents {
             return;
         }
 
+        for (ItemEntity drop : event.getDrops()) {
+            drop.setItem(ZombieDollCarryHelper.withDefaultDroppedPose(drop.getItem()));
+        }
+
         for (ItemStack hiddenDoll : ZombieDollCarryHelper.takeHiddenStoredDolls(zombie)) {
-            event.getDrops().add(new ItemEntity(zombie.level(), zombie.getX(), zombie.getY(), zombie.getZ(), hiddenDoll));
+            ItemStack droppedDoll = ZombieDollCarryHelper.withDefaultDroppedPose(hiddenDoll);
+            event.getDrops().add(new ItemEntity(zombie.level(), zombie.getX(), zombie.getY(), zombie.getZ(), droppedDoll));
         }
     }
 

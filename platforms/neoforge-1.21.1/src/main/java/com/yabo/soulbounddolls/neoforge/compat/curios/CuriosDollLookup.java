@@ -17,8 +17,18 @@ public final class CuriosDollLookup {
     }
 
     public static boolean hasEquippedDoll(Player player) {
+        return findEquippedDoll(player).isPresent();
+    }
+
+    public static boolean isEquippedDoll(Player player, ItemStack stack) {
+        return !stack.isEmpty() && findEquippedDoll(player)
+                .map(equippedStack -> ItemStack.matches(equippedStack, stack))
+                .orElse(false);
+    }
+
+    private static Optional<ItemStack> findEquippedDoll(Player player) {
         if (!ModList.get().isLoaded("curios")) {
-            return false;
+            return Optional.empty();
         }
 
         try {
@@ -26,16 +36,18 @@ public final class CuriosDollLookup {
             Method getCuriosInventory = curiosApi.getMethod("getCuriosInventory", LivingEntity.class);
             Object inventoryResult = getCuriosInventory.invoke(null, player);
             if (!(inventoryResult instanceof Optional<?> optionalInventory) || optionalInventory.isEmpty()) {
-                return false;
+                return Optional.empty();
             }
 
             Object inventory = optionalInventory.get();
             Method findFirstCurio = inventory.getClass().getMethod("findFirstCurio", Predicate.class);
             Object found = findFirstCurio.invoke(inventory, (Predicate<ItemStack>) DollStackHelper::isBoundPlayerDoll);
-            return found instanceof Optional<?> optionalFound && optionalFound.isPresent();
+            if (found instanceof Optional<?> optionalFound && optionalFound.orElse(null) instanceof ItemStack stack) {
+                return Optional.of(stack);
+            }
         } catch (ReflectiveOperationException | LinkageError | ClassCastException exception) {
             SoulboundDollsNeoForge.LOGGER.debug("Curios doll lookup failed", exception);
-            return false;
         }
+        return Optional.empty();
     }
 }

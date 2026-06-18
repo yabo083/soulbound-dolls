@@ -13,6 +13,7 @@ import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -33,7 +34,8 @@ public final class ZombieMoveToDollGoal extends Goal {
 
     @Override
     public boolean canUse() {
-        if (!SoulboundDollsConfig.ENABLE_ATTRACT_UNDEAD.get() || !shouldSearchForDolls(ZombieDollCarryHelper.carriedDollCount(zombie))) {
+        if (!SoulboundDollsConfig.ENABLE_ATTRACT_UNDEAD.get()
+                || !shouldSearchForDolls(ZombieDollCarryHelper.carriedDollCount(zombie), daylightCanBurn(zombie))) {
             return false;
         }
 
@@ -44,7 +46,7 @@ public final class ZombieMoveToDollGoal extends Goal {
     @Override
     public boolean canContinueToUse() {
         return SoulboundDollsConfig.ENABLE_ATTRACT_UNDEAD.get()
-                && shouldSearchForDolls(ZombieDollCarryHelper.carriedDollCount(zombie))
+                && shouldSearchForDolls(ZombieDollCarryHelper.carriedDollCount(zombie), daylightCanBurn(zombie))
                 && target != null
                 && target.isValid()
                 && target.position().distanceToSqr(zombie.position()) <= searchRange * searchRange;
@@ -99,6 +101,17 @@ public final class ZombieMoveToDollGoal extends Goal {
 
     public static boolean shouldSearchForDolls(int carriedDollCount) {
         return carriedDollCount <= 0;
+    }
+
+    public static boolean shouldSearchForDolls(int carriedDollCount, boolean daylightCanBurn) {
+        return daylightCanBurn && shouldSearchForDolls(carriedDollCount);
+    }
+
+    private static boolean daylightCanBurn(Zombie zombie) {
+        Level level = zombie.level();
+        return level.isDay()
+                && !zombie.isInWaterRainOrBubble()
+                && level.canSeeSky(zombie.blockPosition());
     }
 
     static final class DollTarget {

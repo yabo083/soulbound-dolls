@@ -84,15 +84,25 @@ public final class DollSkinManager {
         UUID uuid = profile.uuid();
         String skinValue = profile.skinValue();
         CachedSkin cached = cache.get(uuid);
-        if (cached != null && cached.matches(skinValue) && !cached.allowsLoadedPlayerRefresh()) {
+        if (cached != null && cached.matches(skinValue) && !cached.source().allowsLoadedPlayerRefresh()) {
             logResolveTexture("cache-hit", profile, cached.texture());
             return cached.texture();
+        }
+
+        if (cached != null && !cached.matches(skinValue)) {
+            Optional<ResourceLocation> packedTexture = profileTextureResolver.apply(profile);
+            if (packedTexture.isPresent()) {
+                ResourceLocation packedLocation = packedTexture.get();
+                cache.put(uuid, new CachedSkin(skinValue, packedLocation, SkinSource.PACKED_PROFILE));
+                logResolveTexture("profile-property-hit", profile, packedLocation);
+                return packedLocation;
+            }
         }
 
         Optional<ResourceLocation> loadedPlayerSkin = loadedPlayerSkinResolver.apply(uuid);
         if (loadedPlayerSkin.isPresent() && !isTemporaryDefaultPlayerTexture(loadedPlayerSkin.get())) {
             ResourceLocation texture = loadedPlayerSkin.get();
-            cache.put(uuid, new CachedSkin(skinValue, texture, false));
+            cache.put(uuid, new CachedSkin(skinValue, texture, SkinSource.LOADED_PLAYER));
             logResolveTexture("loaded-player-hit", profile, texture);
             return texture;
         }
@@ -104,18 +114,20 @@ public final class DollSkinManager {
 
         ResourceLocation texture = skinResolver.apply(toGameProfile(profile));
         if (!isTemporaryDefaultPlayerTexture(texture)) {
-            cache.put(uuid, new CachedSkin(skinValue, texture, false));
+            cache.put(uuid, new CachedSkin(skinValue, texture, SkinSource.PROFILE_LOOKUP));
             logResolveTexture("profile-lookup-hit", profile, texture);
-        } else {
-            Optional<ResourceLocation> packedTexture = profileTextureResolver.apply(profile);
-            if (packedTexture.isPresent()) {
-                ResourceLocation packedLocation = packedTexture.get();
-                cache.put(uuid, new CachedSkin(skinValue, packedLocation, true));
-                logResolveTexture("profile-property-hit", profile, packedLocation);
-                return packedLocation;
-            }
-            logResolveTexture("profile-lookup-temporary-default", profile, texture);
+            return texture;
         }
+
+        Optional<ResourceLocation> packedTexture = profileTextureResolver.apply(profile);
+        if (packedTexture.isPresent()) {
+            ResourceLocation packedLocation = packedTexture.get();
+            cache.put(uuid, new CachedSkin(skinValue, packedLocation, SkinSource.PACKED_PROFILE));
+            logResolveTexture("profile-property-hit", profile, packedLocation);
+            return packedLocation;
+        }
+
+        logResolveTexture("profile-lookup-temporary-default", profile, texture);
         return texture;
     }
 
@@ -249,7 +261,23 @@ public final class DollSkinManager {
     private record PackedSkinTexture(String hash, String url, ResourceLocation location) {
     }
 
-    private record CachedSkin(String skinValue, ResourceLocation texture, boolean allowsLoadedPlayerRefresh) {
+    private enum SkinSource {
+        LOADED_PLAYER(true),
+        PROFILE_LOOKUP(false),
+        PACKED_PROFILE(false);
+
+        private final boolean allowsLoadedPlayerRefresh;
+
+        SkinSource(boolean allowsLoadedPlayerRefresh) {
+            this.allowsLoadedPlayerRefresh = allowsLoadedPlayerRefresh;
+        }
+
+        private boolean allowsLoadedPlayerRefresh() {
+            return allowsLoadedPlayerRefresh;
+        }
+    }
+
+    private record CachedSkin(String skinValue, ResourceLocation texture, SkinSource source) {
         private boolean matches(String currentSkinValue) {
             return skinValue.equals(currentSkinValue);
         }

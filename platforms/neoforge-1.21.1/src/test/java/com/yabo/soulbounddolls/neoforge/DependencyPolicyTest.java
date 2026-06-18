@@ -125,13 +125,27 @@ class DependencyPolicyTest {
     }
 
     @Test
-    void playerDollItemDelegatesNonSneakUseToEquipableSwap() throws IOException {
+    void playerDollItemEquipsOnlyOneDollFromHeldStack() throws IOException {
         String playerDollItem = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/item/PlayerDollItem.java");
 
-        assertTrue(playerDollItem.contains("return swapWithEquipmentSlot(this, level, player, hand);"),
-                "Non-sneak use should preserve vanilla right-click helmet equip behavior");
+        assertFalse(playerDollItem.contains("swapWithEquipmentSlot"),
+                "Vanilla equipment swap moves the whole held stack into the head slot");
+        assertTrue(playerDollItem.contains("singleHeadSlotDoll"),
+                "Non-sneak use should split exactly one doll into the head slot");
         assertFalse(playerDollItem.contains("return InteractionResultHolder.pass(stack);"),
                 "Returning PASS bypasses Item/Equipable right-click equipment swap");
+    }
+
+    @Test
+    void runtimeEventsNormalizeDollStacksEquippedByMobs() throws IOException {
+        String runtimeEvents = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/SoulboundDollsRuntimeEvents.java");
+
+        assertTrue(runtimeEvents.contains("singleHeadSlotDoll"),
+                "Any living entity that equips a doll in its head slot should be normalized to one doll");
+        assertTrue(runtimeEvents.contains("setItemSlot(EquipmentSlot.HEAD, DollStackHelper.singleHeadSlotDoll(stack))"),
+                "Normalization must write the one-count doll back to the head slot");
+        assertTrue(runtimeEvents.contains("spawnAtLocation(remainder)"),
+                "Normalization should drop the excess dolls instead of deleting them");
     }
 
     @Test
@@ -232,6 +246,62 @@ class DependencyPolicyTest {
                 "Architecture should document the zombie doll carry cap");
         assertTrue(architecture.contains("Enderman") || architecture.contains("末影人"),
                 "Architecture should document Enderman look protection when wearing dolls");
+    }
+
+    @Test
+    void playerDollTranslationsIncludeZombieTruceText() throws IOException {
+        String zhCn = readModuleFile("src/main/resources/assets/soulbound_dolls/lang/zh_cn.json");
+        String enUs = readModuleFile("src/main/resources/assets/soulbound_dolls/lang/en_us.json");
+        String playerDollItem = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/item/PlayerDollItem.java");
+        String zombieCarryHelper = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/entity/ZombieDollCarryHelper.java");
+
+        String jadePlugin = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/compat/jade/SoulboundDollsJadePlugin.java");
+        assertFalse(methodBody(playerDollItem, "public void appendHoverText").contains("item.soulbound_dolls.player_doll.tooltip.zombie_truce"),
+                "Generic item hover should not show the zombie truce tip");
+        assertTrue(jadePlugin.contains("item.soulbound_dolls.player_doll.tooltip.zombie_truce"),
+                "Jade should include the zombie truce tip only for friendly zombies");
+        assertTrue(jadePlugin.contains("PlayerDollEntity.class"),
+                "Jade should keep showing placed doll entity data");
+        assertTrue(jadePlugin.contains("Zombie.class"),
+                "Jade should also show the truce tip on friendly zombie entities");
+        assertFalse(methodBody(jadePlugin, "public void appendTooltip").contains("item.soulbound_dolls.player_doll.tooltip.zombie_truce"),
+                "Placed doll Jade should not show the zombie truce tip");
+        assertTrue(zhCn.contains("tips: 感谢你的帮助, 所以我们单方面决定暂时握手言和"),
+                "Chinese tooltip should preserve the requested zombie truce sentence");
+        assertTrue(enUs.contains("item.soulbound_dolls.player_doll.tooltip.zombie_truce"),
+                "English lang file should include the zombie truce tooltip key");
+        assertTrue(zhCn.contains("\"entity.soulbound_dolls.friendly_zombie\": \"友好的僵尸\""),
+                "Chinese lang file should name truce zombies as friendly zombies");
+        assertTrue(zombieCarryHelper.contains("entity.soulbound_dolls.friendly_zombie"),
+                "Friendly zombie custom name should use the translation key");
+    }
+
+    @Test
+    void enderMaskTipOnlyAppearsForEquippedDollStacks() throws IOException {
+        String playerDollItem = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/item/PlayerDollItem.java");
+        String tooltipHandler = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/client/SoulboundDollsClientTooltipHandler.java");
+        String curiosLookup = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/compat/curios/CuriosDollLookup.java");
+
+        assertFalse(methodBody(playerDollItem, "public void appendHoverText").contains("item.soulbound_dolls.player_doll.tooltip.ender_mask"),
+                "Generic item hover should not show the ender-mask soul tip");
+        assertTrue(tooltipHandler.contains("ItemTooltipEvent"),
+                "Equipped-only ender-mask tooltip should be added from the client tooltip event");
+        assertTrue(tooltipHandler.contains("item.soulbound_dolls.player_doll.tooltip.ender_mask"),
+                "Client tooltip handler should add the ender-mask soul tip when the hovered stack is equipped");
+        assertTrue(tooltipHandler.contains("isHeadStack") && tooltipHandler.contains("CuriosDollLookup.isEquippedDoll"),
+                "Ender-mask soul tip should be scoped to player head slot or compatible Curios slot");
+        assertTrue(tooltipHandler.contains("soulbound_dolls:player_doll"),
+                "Client tooltip handler should remove the advanced item id line for player dolls only");
+        assertTrue(curiosLookup.contains("isEquippedDoll"),
+                "Curios lookup should support checking whether the hovered stack is actually equipped");
+    }
+
+    @Test
+    void wornSittingOffsetDefaultMatchesTunedConfigValue() throws IOException {
+        String config = readModuleFile("src/main/java/com/yabo/soulbounddolls/neoforge/SoulboundDollsConfig.java");
+
+        assertTrue(config.contains("defineInRange(\"wornDollSittingOffsetY\", -3.25, -16.0, 16.0)"),
+                "Worn sitting Y default should match the tuned in-game value");
     }
 
     private static String methodBody(String source, String signatureStart) {

@@ -7,6 +7,7 @@ import com.yabo.soulbounddolls.neoforge.SoulboundDollsEntities;
 import com.yabo.soulbounddolls.neoforge.SoulboundDollsItems;
 import com.yabo.soulbounddolls.neoforge.entity.DollProjectileEntity;
 import com.yabo.soulbounddolls.neoforge.entity.PlayerDollEntity;
+import com.yabo.soulbounddolls.neoforge.network.CycleWornDollPosePacket;
 import com.yabo.soulbounddolls.neoforge.skin.DollSkinResolver;
 import java.util.List;
 import net.minecraft.ChatFormatting;
@@ -19,6 +20,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ArmorItem;
@@ -120,10 +122,14 @@ public final class PlayerDollItem extends Item implements Equipable {
                     .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
         }
 
-        if (SoulboundDollsConfig.ENABLE_ENDER_MASK_PROTECTION.get()) {
-            tooltip.add(Component.translatable("item.soulbound_dolls.player_doll.tooltip.ender_mask")
-                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+    }
+
+    @Override
+    public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
+        if (level.isClientSide || !(entity instanceof Player player) || player.getItemBySlot(EquipmentSlot.HEAD) == stack) {
+            return;
         }
+        CycleWornDollPosePacket.resetPose(stack);
     }
 
     @Override
@@ -141,7 +147,17 @@ public final class PlayerDollItem extends Item implements Equipable {
             return InteractionResultHolder.consume(stack);
         }
 
-        return swapWithEquipmentSlot(this, level, player, hand);
+        if (!SoulboundDollsConfig.ALLOW_DOLL_AS_HELMET.get() || !player.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {
+            return InteractionResultHolder.fail(stack);
+        }
+
+        if (!level.isClientSide) {
+            player.setItemSlot(EquipmentSlot.HEAD, DollStackHelper.singleHeadSlotDoll(stack));
+            if (!player.getAbilities().instabuild) {
+                stack.shrink(1);
+            }
+        }
+        return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
     }
 
     @Override

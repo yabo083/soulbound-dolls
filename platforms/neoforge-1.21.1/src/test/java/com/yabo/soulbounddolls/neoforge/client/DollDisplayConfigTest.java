@@ -40,6 +40,20 @@ class DollDisplayConfigTest {
     }
 
     @Test
+    void headDisplayTransformLiftsVariantPosesAboveHelmetSlot() {
+        JsonObject display = new JsonObject();
+        JsonObject head = new JsonObject();
+        head.add("translation", vector(0.0F, 14.0F, 0.0F));
+        head.add("scale", vector(1.0F, 1.1F, 1.0F));
+        display.add("head", head);
+
+        DollDisplayConfig.DisplayTransform transform = DollDisplayConfig.parse(display).transform(ItemDisplayContext.HEAD);
+
+        assertEquals(14.0F, transform.translation().y(), 0.0001F);
+        assertEquals(1.1F, transform.scale().y(), 0.0001F);
+    }
+
+    @Test
     void displayTransformKeepsModelCenterAlignedWithVanillaItemRendererCentering() {
         DollDisplayConfig.DisplayTransform transform = new DollDisplayConfig.DisplayTransform(
                 new DollDisplayConfig.Vector3(0.0F, 0.0F, 0.0F),

@@ -38,6 +38,13 @@ class ZombieMoveToDollGoalTest {
     }
 
     @Test
+    void zombieOnlySearchesForDollsWhenDaylightCanBurnIt() {
+        assertTrue(ZombieMoveToDollGoal.shouldSearchForDolls(0, true));
+        assertTrue(!ZombieMoveToDollGoal.shouldSearchForDolls(0, false));
+        assertTrue(!ZombieMoveToDollGoal.shouldSearchForDolls(1, true));
+    }
+
+    @Test
     void zombieStopsChasingDollsAfterCarryingOne() {
         assertTrue(!ZombieMoveToDollGoal.shouldSearchForDolls(1));
         assertTrue(!ZombieMoveToDollGoal.shouldSearchForDolls(2));

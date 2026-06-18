@@ -22,6 +22,18 @@ public final class SoulboundDollsConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_REPEL_PHANTOMS;
     public static final ModConfigSpec.DoubleValue REPEL_PHANTOMS_RANGE;
     public static final ModConfigSpec.BooleanValue ENABLE_ENDER_MASK_PROTECTION;
+    public static final ModConfigSpec.DoubleValue WORN_DOLL_HEAD_OFFSET_X;
+    public static final ModConfigSpec.DoubleValue WORN_DOLL_HEAD_OFFSET_Y;
+    public static final ModConfigSpec.DoubleValue WORN_DOLL_HEAD_OFFSET_Z;
+    public static final ModConfigSpec.DoubleValue WORN_DOLL_SITTING_OFFSET_X;
+    public static final ModConfigSpec.DoubleValue WORN_DOLL_SITTING_OFFSET_Y;
+    public static final ModConfigSpec.DoubleValue WORN_DOLL_SITTING_OFFSET_Z;
+    public static final ModConfigSpec.DoubleValue WORN_DOLL_STANDING_OFFSET_X;
+    public static final ModConfigSpec.DoubleValue WORN_DOLL_STANDING_OFFSET_Y;
+    public static final ModConfigSpec.DoubleValue WORN_DOLL_STANDING_OFFSET_Z;
+    public static final ModConfigSpec.DoubleValue WORN_DOLL_CUTE_IDLE_OFFSET_X;
+    public static final ModConfigSpec.DoubleValue WORN_DOLL_CUTE_IDLE_OFFSET_Y;
+    public static final ModConfigSpec.DoubleValue WORN_DOLL_CUTE_IDLE_OFFSET_Z;
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -86,6 +98,43 @@ public final class SoulboundDollsConfig {
         ENABLE_ENDER_MASK_PROTECTION = builder
                 .comment("Treat a bound player doll worn in the head slot or optional compatible accessory slot as an enderman mask.")
                 .define("enableEnderMaskProtection", true);
+
+        WORN_DOLL_HEAD_OFFSET_X = builder
+                .comment("Base X offset for dolls rendered in a head slot, measured in model pixels and divided by 16 at render time.")
+                .defineInRange("wornDollHeadOffsetX", 0.0, -16.0, 16.0);
+        WORN_DOLL_HEAD_OFFSET_Y = builder
+                .comment("Base Y offset for dolls rendered in a head slot, measured in model pixels and divided by 16 at render time.")
+                .defineInRange("wornDollHeadOffsetY", 0.0, -16.0, 16.0);
+        WORN_DOLL_HEAD_OFFSET_Z = builder
+                .comment("Base Z offset for dolls rendered in a head slot, measured in model pixels and divided by 16 at render time.")
+                .defineInRange("wornDollHeadOffsetZ", 0.0, -16.0, 16.0);
+        WORN_DOLL_SITTING_OFFSET_X = builder
+                .comment("Additional X offset applied when a worn doll uses the sitting pose, measured in model pixels and divided by 16 at render time.")
+                .defineInRange("wornDollSittingOffsetX", 0.0, -16.0, 16.0);
+        WORN_DOLL_SITTING_OFFSET_Y = builder
+                .comment("Additional Y offset applied when a worn doll uses the sitting pose, measured in model pixels and divided by 16 at render time.")
+                .defineInRange("wornDollSittingOffsetY", -3.25, -16.0, 16.0);
+        WORN_DOLL_SITTING_OFFSET_Z = builder
+                .comment("Additional Z offset applied when a worn doll uses the sitting pose, measured in model pixels and divided by 16 at render time.")
+                .defineInRange("wornDollSittingOffsetZ", 0.0, -16.0, 16.0);
+        WORN_DOLL_STANDING_OFFSET_X = builder
+                .comment("Additional X offset applied when a worn doll uses the standing pose, measured in model pixels and divided by 16 at render time.")
+                .defineInRange("wornDollStandingOffsetX", 0.0, -16.0, 16.0);
+        WORN_DOLL_STANDING_OFFSET_Y = builder
+                .comment("Additional Y offset applied when a worn doll uses the standing pose, measured in model pixels and divided by 16 at render time.")
+                .defineInRange("wornDollStandingOffsetY", 0.0, -16.0, 16.0);
+        WORN_DOLL_STANDING_OFFSET_Z = builder
+                .comment("Additional Z offset applied when a worn doll uses the standing pose, measured in model pixels and divided by 16 at render time.")
+                .defineInRange("wornDollStandingOffsetZ", 0.0, -16.0, 16.0);
+        WORN_DOLL_CUTE_IDLE_OFFSET_X = builder
+                .comment("Additional X offset applied when a worn doll uses the cute idle pose, measured in model pixels and divided by 16 at render time.")
+                .defineInRange("wornDollCuteIdleOffsetX", 0.0, -16.0, 16.0);
+        WORN_DOLL_CUTE_IDLE_OFFSET_Y = builder
+                .comment("Additional Y offset applied when a worn doll uses the cute idle pose, measured in model pixels and divided by 16 at render time.")
+                .defineInRange("wornDollCuteIdleOffsetY", 0.0, -16.0, 16.0);
+        WORN_DOLL_CUTE_IDLE_OFFSET_Z = builder
+                .comment("Additional Z offset applied when a worn doll uses the cute idle pose, measured in model pixels and divided by 16 at render time.")
+                .defineInRange("wornDollCuteIdleOffsetZ", 0.0, -16.0, 16.0);
 
         SPEC = builder.build();
     }

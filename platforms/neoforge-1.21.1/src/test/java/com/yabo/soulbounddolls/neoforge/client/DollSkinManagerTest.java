@@ -121,6 +121,47 @@ class DollSkinManagerTest {
     }
 
     @Test
+    void resolveRefreshesLoadedPlayerSkinWhenClientSkinChanges() {
+        AtomicInteger loadedResolverCalls = new AtomicInteger();
+        AtomicInteger underlyingResolverCalls = new AtomicInteger();
+        UUID uuid = UUID.fromString("00000000-0000-0000-0000-00000000000a");
+        ResourceLocation initialSkin = ResourceLocation.fromNamespaceAndPath("customskinloader", "default/local_player");
+        ResourceLocation refreshedSkin = ResourceLocation.withDefaultNamespace("skins/refreshed_local_player");
+        DollSkinManager manager = new DollSkinManager(
+                gameProfile -> {
+                    underlyingResolverCalls.incrementAndGet();
+                    return ResourceLocation.withDefaultNamespace("skins/slow_profile_lookup");
+                },
+                queriedUuid -> queriedUuid.equals(uuid)
+                        ? Optional.of(loadedResolverCalls.incrementAndGet() == 1 ? initialSkin : refreshedSkin)
+                        : Optional.empty(),
+                ResourceLocation.fromNamespaceAndPath("soulbound_dolls", "textures/entity/default_doll.png"));
+        PlayerDollProfile profile = PlayerDollProfile.of(uuid, "LocalPlayer", "skin-value", "skin-signature", false, 100L);
+
+        assertEquals(initialSkin, manager.resolve(profile));
+        assertEquals(refreshedSkin, manager.resolve(profile));
+        assertEquals(0, underlyingResolverCalls.get(), "Loaded player skin refresh should not fall back to profile lookup");
+    }
+
+    @Test
+    void refreshedPackedProfileSkinValueReplacesLoadedPlayerCache() {
+        UUID uuid = UUID.fromString("00000000-0000-0000-0000-00000000000b");
+        ResourceLocation loadedPlayerSkin = ResourceLocation.withDefaultNamespace("skins/stale_loaded_player");
+        ResourceLocation refreshedPackedSkin = ResourceLocation.withDefaultNamespace("skins/refreshed_packed_profile");
+        DollSkinManager manager = new DollSkinManager(
+                gameProfile -> ResourceLocation.withDefaultNamespace("textures/entity/player/wide/steve.png"),
+                queriedUuid -> queriedUuid.equals(uuid) ? Optional.of(loadedPlayerSkin) : Optional.empty(),
+                profile -> Optional.of(refreshedPackedSkin),
+                ResourceLocation.fromNamespaceAndPath("soulbound_dolls", "textures/entity/default_doll.png"));
+
+        PlayerDollProfile original = PlayerDollProfile.of(uuid, "LocalPlayer", "skin-v1", "skin-signature", false, 100L);
+        PlayerDollProfile refreshed = PlayerDollProfile.of(uuid, "LocalPlayer", "skin-v2", "skin-signature", false, 200L);
+
+        assertEquals(loadedPlayerSkin, manager.resolve(original));
+        assertEquals(refreshedPackedSkin, manager.resolve(refreshed));
+    }
+
+    @Test
     void resolveDerivesSkinLocationFromProfileWhenLookupReturnsTemporaryDefault() {
         AtomicInteger underlyingResolverCalls = new AtomicInteger();
         ResourceLocation temporaryDefault = ResourceLocation.withDefaultNamespace("textures/entity/player/slim/noor.png");
