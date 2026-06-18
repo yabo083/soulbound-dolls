@@ -6,6 +6,7 @@ import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ZombieMoveToDollGoalTest {
@@ -40,8 +41,8 @@ class ZombieMoveToDollGoalTest {
     @Test
     void zombieOnlySearchesForDollsWhenDaylightCanBurnIt() {
         assertTrue(ZombieMoveToDollGoal.shouldSearchForDolls(0, true));
-        assertTrue(!ZombieMoveToDollGoal.shouldSearchForDolls(0, false));
-        assertTrue(!ZombieMoveToDollGoal.shouldSearchForDolls(1, true));
+        assertFalse(ZombieMoveToDollGoal.shouldSearchForDolls(0, false));
+        assertFalse(ZombieMoveToDollGoal.shouldSearchForDolls(1, true));
     }
 
     @Test

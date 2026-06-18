@@ -42,12 +42,24 @@ public final class CuriosDollLookup {
             Object inventory = optionalInventory.get();
             Method findFirstCurio = inventory.getClass().getMethod("findFirstCurio", Predicate.class);
             Object found = findFirstCurio.invoke(inventory, (Predicate<ItemStack>) DollStackHelper::isBoundPlayerDoll);
-            if (found instanceof Optional<?> optionalFound && optionalFound.orElse(null) instanceof ItemStack stack) {
-                return Optional.of(stack);
+            if (found instanceof Optional<?> optionalFound) {
+                return stackFromFindFirstCurioResult(optionalFound)
+                        .filter(DollStackHelper::isBoundPlayerDoll);
             }
         } catch (ReflectiveOperationException | LinkageError | ClassCastException exception) {
             SoulboundDollsNeoForge.LOGGER.debug("Curios doll lookup failed", exception);
         }
         return Optional.empty();
+    }
+
+    static Optional<ItemStack> stackFromFindFirstCurioResult(Optional<?> optionalFound) throws ReflectiveOperationException {
+        if (optionalFound.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Object slotResult = optionalFound.get();
+        Method stackAccessor = slotResult.getClass().getMethod("stack");
+        Object stack = stackAccessor.invoke(slotResult);
+        return stack instanceof ItemStack itemStack ? Optional.of(itemStack) : Optional.empty();
     }
 }
