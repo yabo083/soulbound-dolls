@@ -45,22 +45,23 @@ Publishing to Modrinth and CurseForge is scaffolded but not active until project
 2. The server records their UUID, name, and available skin texture data.
 3. If `autoGiveOwnDoll` is enabled, the player receives their own bound doll once.
 4. A blank `Player Doll` can also be crafted and binds to the placing player on first placement.
-5. Placed dolls can be patted, shaken, pose-cycled, copied in creative mode, and picked up with permission checks.
+5. Placed dolls can be patted, shaken, pose-cycled, copied in creative mode, worn as head-slot dolls, and picked up with permission checks.
 
 ## Interactions
 
-Dolls use vanilla mouse and sneak interactions; no custom keybindings are required.
+Dolls mostly use vanilla mouse and sneak interactions. Keybindings are used for teleporting to a bound player and cycling the pose of a worn doll.
 
 | Action | Input | Effect |
 | --- | --- | --- |
 | Place a doll | Right-click a block face while holding a doll | Spawns a `Player Doll` entity bound to the doll's profile. |
 | Cycle pose | Right-click a placed doll while holding any item | Cycles Sitting → Standing → Cute idle. |
+| Wear a doll | Right-click air while holding a doll and with an empty head slot | Equips exactly one doll in the head slot. |
+| Cycle worn pose | Press B while wearing a doll | Cycles the worn doll Sitting → Standing → Cute idle. |
 | Pat | Right-click a placed doll with an empty hand | Plays a chime and emits heart particles (if `allowPatParticles`). |
 | Shake | Sneak + attack (left-click) a placed doll | Plays a shake animation and sound. |
 | Pick up | Sneak + right-click a placed doll | Returns the doll to your inventory, subject to `allowPickupByAnyone`. |
 
-> Note: this version intentionally keeps vanilla interactions. Fully customizable key bindings are
-> planned for a later release.
+> Note: the default worn-doll pose key is B and can be changed in Minecraft's key bindings menu.
 
 ## Commands
 
@@ -104,6 +105,8 @@ config/soulbound_dolls-common.toml
 | `allowPatParticles` | `true` | Emit heart particles when dolls are patted. |
 | `allowPickupByAnyone` | `false` | Allow anyone to pick up placed dolls instead of only the creator. |
 | `skinRefreshTtlMinutes` | `60` | Minimum minutes between online skin refreshes per player; cached skins are reused within this window. |
+| `allowDollAsHelmet` | `true` | Allow player dolls to be equipped in the head slot. |
+| `enableEnderMaskProtection` | `true` | Treat worn or compatible accessory-slot dolls as Enderman masks. |
 
 ## Build From Source
 

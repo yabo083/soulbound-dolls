@@ -9,6 +9,7 @@ Soulbound Dolls 是一个 NeoForge 1.21.1 模组。它会记录进入过世界�
 - `Doll Catalog`：玩偶目录物品，目前已注册，后续可扩展为完整收藏界面。
 - `Soulbound Dolls` 创造模式标签页。
 - 可放置的玩家玩偶实体，支持坐姿、站立、可爱待机三种姿势。
+- 头戴 `Player Doll` 时可按 B 在坐姿、站立、可爱待机之间切换姿势。
 - 世界/服务器级玩家资料记录。
 - 管理员命令 `/sbdoll`：列出、给予、刷新玩家玩偶。
 - COMMON 配置文件：`soulbound_dolls-common.toml`。
@@ -57,6 +58,13 @@ W W W
 
 默认只有放置者可以拾取自己的玩偶。服务器可通过配置允许所有玩家拾取。
 
+## 头戴玩偶
+
+- 头部槽为空时，手持 `Player Doll` 右键空气会从手中堆叠拆出 1 个装备到头部槽。
+- 佩戴玩偶时按 B，可在坐姿、站立、可爱待机之间切换头戴玩偶姿势。
+- `enableEnderMaskProtection` 开启时，头戴绑定玩偶可作为末影人面具。
+- 如果生物通过拾取/装备机制把一组玩偶放进头部槽，头部只保留 1 个，多余玩偶会掉回世界。
+
 ## 皮肤逻辑
 
 - 模组会尽量从玩家资料中保存皮肤纹理数据。
@@ -64,6 +72,7 @@ W W W
 - 如果没有可用皮肤，玩偶会使用内置默认贴图。
 - `Player Doll` 物品在 ItemStack 拥有绑定皮肤数据时会动态渲染玩家皮肤；否则使用静态备用物品模型。
 - 绑定到同一个玩家 UUID 的玩偶可以堆叠到 16 个；绑定到不同玩家的玩偶不会混在同一组里。
+- 头部槽一次只能容纳 1 个玩家玩偶，即使来源物品是一组玩偶。
 - 服务器可以通过配置开启或关闭 Mojang 在线皮肤刷新。
 
 ## 管理员命令
@@ -123,6 +132,8 @@ config/soulbound_dolls-common.toml
 - `enableOnlineSkinRefresh = true`：允许从 Mojang 服务刷新已知玩家皮肤。
 - `allowPatParticles = true`：拍玩偶时允许生成爱心粒子。
 - `allowPickupByAnyone = false`：是否允许任意玩家拾取已放置玩偶。关闭时只有放置者能拾取。
+- `allowDollAsHelmet = true`：允许玩家玩偶装备到头部槽。
+- `enableEnderMaskProtection = true`：将头戴或兼容饰品槽中的玩偶视为末影人面具。
 
 ## 实测清单
 
@@ -137,11 +148,12 @@ config/soulbound_dolls-common.toml
 7. 持物右键玩偶，确认会切换姿势并显示快捷栏提示。
 8. 潜行 + 持物右键玩偶，确认有摇晃反馈。
 9. 潜行 + 空手右键玩偶，确认能拾取并保留绑定信息。
-10. 测试创造中键复制、左键摇晃、潜行 + 左键拾取。
-11. 测试未绑定、相同绑定、不同绑定玩偶的堆叠行为。
-12. 作为 OP 执行 `/sbdoll list`。
-13. 执行 `/sbdoll give <target> <known-player>`，确认能发放绑定玩偶。
-14. 执行 `/sbdoll refresh <known-player>`，观察刷新反馈。
+10. 手持一组玩偶佩戴，确认头部槽只进入 1 个；佩戴后按 B 确认头戴姿势会切换。
+11. 测试创造中键复制、左键摇晃、潜行 + 左键拾取。
+12. 测试未绑定、相同绑定、不同绑定玩偶的堆叠行为。
+13. 作为 OP 执行 `/sbdoll list`。
+14. 执行 `/sbdoll give <target> <known-player>`，确认能发放绑定玩偶。
+15. 执行 `/sbdoll refresh <known-player>`，观察刷新反馈。
 
 ## 当前限制
 

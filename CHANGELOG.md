@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.3 - 2026-06-18
+
+### Added
+- **Worn Doll Pose Cycling**: Press B (configurable keybind) while wearing a player doll to cycle the worn doll between sitting, standing, and cute idle poses. Pose state is synchronized through the server.
+- **Worn Doll Offset Tuning**: Add configurable head-slot offsets for worn dolls, including per-pose offsets for sitting, standing, and cute idle.
+- **Friendly Zombie Truce Feedback**: Doll-wearing friendly zombies show a truce line through Jade, and hostile behavior resumes after the zombie is attacked.
+
+### Changed
+- Worn player dolls now default to a sitting pose in head slots while item/hand displays still default to standing.
+- Zombies now seek dolls only when daylight can burn them, carry dolls with visible random poses, and normalize dropped carried dolls so pose-only state does not prevent stacking.
+- Player dolls equipped through right-click now place exactly one doll into the head slot; if any living entity equips a stacked doll in its head slot, the head slot keeps one and drops the remainder.
+- Ender-mask flavor text is now shown only when the hovered doll stack is actually equipped in the player head slot or a compatible Curios slot.
+- The advanced tooltip item ID line is hidden for player dolls while advanced tooltips remain enabled for other items.
+
+### Fixed
+- Refreshing or server-packed player skin data now replaces stale loaded-player skin cache entries, preventing first-frame/default skin lock-in.
+- Curios equipped-doll detection now extracts the stack from Curios `SlotResult` values instead of treating the result as an `ItemStack`.
+
 ## 0.1.2 - 2026-06-15
 
 ### Added

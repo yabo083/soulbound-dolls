@@ -9,6 +9,7 @@ Soulbound Dolls is a NeoForge 1.21.1 mod that creates player-bound dolls for pla
 - `Doll Catalog`: a creative-tab item reserved as a collection/catalog surface.
 - `Soulbound Dolls` creative tab.
 - A placed `Player Doll` entity with sitting, standing, and cute idle poses.
+- Worn `Player Doll` pose cycling with the B key when a doll is equipped in the head slot.
 - Server-side known-player registry saved in world data.
 - Admin command `/sbdoll` for listing, giving, and refreshing known player dolls.
 - Common config file `soulbound_dolls-common.toml`.
@@ -55,6 +56,13 @@ After placing a doll:
 
 Pickup is creator-only by default. Server config can allow anyone to pick up placed dolls.
 
+## Worn Dolls
+
+- Right-click air with a `Player Doll` and an empty head slot to equip exactly one doll from the held stack.
+- Press B while wearing a doll to cycle the worn pose between sitting, standing, and cute idle.
+- A worn bound doll can act as an Enderman mask when `enableEnderMaskProtection` is enabled.
+- If a mob equips a stacked doll item in its head slot, only one doll stays equipped and the rest drops back into the world.
+
 ## Skin Behavior
 
 - The mod stores skin texture data when available from the player's profile.
@@ -62,6 +70,7 @@ Pickup is creator-only by default. Server config can allow anyone to pick up pla
 - If no skin is available, the doll uses the built-in fallback texture.
 - The `Player Doll` item uses dynamic player-skin rendering when its ItemStack has bound skin data; otherwise, it uses the static fallback item model.
 - Bound dolls for the same player UUID can stack together up to 16. Dolls bound to different players do not merge into the same stack.
+- Head slots can hold only one player doll at a time, even when the source item stack contains more dolls.
 - Server-side online skin refresh can be enabled or disabled by config.
 
 ## Admin Commands
@@ -112,6 +121,8 @@ Options:
 - `enableOnlineSkinRefresh = true`: refresh known player skin textures from Mojang services.
 - `allowPatParticles = true`: allow pat interactions to emit heart particles.
 - `allowPickupByAnyone = false`: allow any player to pick up placed dolls. If false, only the creator can pick them up.
+- `allowDollAsHelmet = true`: allow player dolls to be worn in the head slot.
+- `enableEnderMaskProtection = true`: treat worn or compatible accessory-slot dolls as Enderman masks.
 
 ## Testing Checklist
 
@@ -123,10 +134,11 @@ For a first in-game test:
 4. Join as a player and check whether a bound doll is auto-given.
 5. Craft a blank `Player Doll` and place it.
 6. Verify the placed doll can be patted, pose-cycled with a held item, shaken while sneaking with a held item, and picked up while sneaking empty-handed.
-7. Verify middle-click copying, left-click shaking, shift-left-click pickup, and stack behavior for unbound/same-bound/different-bound dolls.
-8. Run `/sbdoll list` as an operator.
-9. Run `/sbdoll give <target> <known-player>` and place the result.
-10. Run `/sbdoll refresh <known-player>` and watch for success/failure feedback.
+7. Wear a stack of dolls and confirm only one enters the head slot, then press B to cycle the worn pose.
+8. Verify middle-click copying, left-click shaking, shift-left-click pickup, and stack behavior for unbound/same-bound/different-bound dolls.
+9. Run `/sbdoll list` as an operator.
+10. Run `/sbdoll give <target> <known-player>` and place the result.
+11. Run `/sbdoll refresh <known-player>` and watch for success/failure feedback.
 
 ## Current Limitations
 
