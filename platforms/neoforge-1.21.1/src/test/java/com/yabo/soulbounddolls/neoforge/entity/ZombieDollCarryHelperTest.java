@@ -3,6 +3,7 @@ package com.yabo.soulbounddolls.neoforge.entity;
 import com.yabo.soulbounddolls.common.PlayerDollProfile;
 import com.yabo.soulbounddolls.neoforge.SoulboundDollsComponents;
 import com.yabo.soulbounddolls.neoforge.SoulboundDollsItems;
+import com.yabo.soulbounddolls.neoforge.item.DollStackHelper;
 import com.yabo.soulbounddolls.neoforge.item.PlayerDollItem;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -52,6 +53,13 @@ class ZombieDollCarryHelperTest {
                     .networkSynchronized(SoulboundDollsComponents.PLAYER_DOLL_PROFILE_STREAM_CODEC)
                     .build());
         }
+        ResourceLocation poseComponentId = SoulboundDollsComponents.PLAYER_DOLL_POSE.getId();
+        if (!BuiltInRegistries.DATA_COMPONENT_TYPE.containsKey(poseComponentId)) {
+            Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, poseComponentId, DataComponentType.<Integer>builder()
+                    .persistent(com.mojang.serialization.Codec.INT)
+                    .networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.VAR_INT)
+                    .build());
+        }
     }
 
     @Test
@@ -95,9 +103,67 @@ class ZombieDollCarryHelperTest {
         assertTrue(ZombieDollCarryHelper.firstVisibleDollSlotForHeadPromotion(false, false).isEmpty());
     }
 
+    @Test
+    void boundDollOwnerIsProtectedUnlessTheyJustAttackedTheZombie() {
+        UUID owner = UUID.fromString("00000000-0000-0000-0000-000000000123");
+        ItemStack carriedDoll = boundDoll(owner, "Owner");
+
+        assertTrue(ZombieDollCarryHelper.shouldAvoidTargetingOwner(carriedDoll, owner, false));
+        assertFalse(ZombieDollCarryHelper.shouldAvoidTargetingOwner(carriedDoll, owner, true));
+        assertFalse(ZombieDollCarryHelper.shouldAvoidTargetingOwner(carriedDoll, UUID.randomUUID(), false));
+    }
+
+    @Test
+    void activeCarriedDollTruceOnlyMatchesThatDoll() {
+        UUID owner = UUID.fromString("00000000-0000-0000-0000-000000000123");
+        ItemStack ownedDoll = boundDoll(owner, "Owner");
+        ItemStack unrelatedDoll = boundDoll(UUID.fromString("00000000-0000-0000-0000-000000000456"), "Other");
+
+        assertTrue(ZombieDollCarryHelper.shouldAvoidTargetingOwner(ownedDoll, owner, false));
+        assertFalse(ZombieDollCarryHelper.shouldAvoidTargetingOwner(unrelatedDoll, owner, false));
+    }
+
+    @Test
+    void resetTruceAllowsNormalTargetingEvenWithHeadDollEquipped() {
+        UUID owner = UUID.fromString("00000000-0000-0000-0000-000000000123");
+        ItemStack ownedDoll = boundDoll(owner, "Owner");
+
+        assertFalse(ZombieDollCarryHelper.shouldAvoidTargetingOwner(ownedDoll, owner, false, true));
+    }
+
+    @Test
+    void carriedPoseIdsStayInsideRegisteredDollPoseRange() {
+        assertEquals(0, ZombieDollCarryHelper.carriedPoseIdFromSeed(0));
+        assertEquals(1, ZombieDollCarryHelper.carriedPoseIdFromSeed(1));
+        assertEquals(2, ZombieDollCarryHelper.carriedPoseIdFromSeed(2));
+        assertEquals(0, ZombieDollCarryHelper.carriedPoseIdFromSeed(3));
+        assertEquals(2, ZombieDollCarryHelper.carriedPoseIdFromSeed(-1));
+    }
+
+    @Test
+    void droppedBoundDollLosesCarriedPoseComponent() {
+        ItemStack carriedDoll = boundDoll("Posey");
+        carriedDoll.set(SoulboundDollsComponents.PLAYER_DOLL_POSE.get(), PlayerDollEntity.DollPose.CUTE_IDLE.id());
+
+        ItemStack normalized = ZombieDollCarryHelper.withDefaultDroppedPose(carriedDoll);
+
+        assertFalse(normalized.has(SoulboundDollsComponents.PLAYER_DOLL_POSE.get()));
+        assertTrue(DollStackHelper.isBoundPlayerDoll(normalized));
+    }
+
+    @Test
+    void friendlyZombieNameIsOnlyAppliedWhenHeadDollIsPresent() {
+        assertTrue(ZombieDollCarryHelper.shouldUseFriendlyName(boundDoll("Friend")));
+        assertFalse(ZombieDollCarryHelper.shouldUseFriendlyName(ItemStack.EMPTY));
+    }
+
     private static ItemStack boundDoll(String name) {
+        return boundDoll(UUID.nameUUIDFromBytes(name.getBytes(StandardCharsets.UTF_8)), name);
+    }
+
+    private static ItemStack boundDoll(UUID uuid, String name) {
         PlayerDollProfile profile = PlayerDollProfile.of(
-                UUID.nameUUIDFromBytes(name.getBytes(StandardCharsets.UTF_8)),
+                uuid,
                 name,
                 "",
                 "",

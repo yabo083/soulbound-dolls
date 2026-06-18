@@ -10,6 +10,7 @@ import com.mojang.math.Axis;
 import com.yabo.soulbounddolls.common.DollConstants;
 import com.yabo.soulbounddolls.common.PlayerDollProfile;
 import com.yabo.soulbounddolls.neoforge.SoulboundDollsComponents;
+import com.yabo.soulbounddolls.neoforge.SoulboundDollsConfig;
 import com.yabo.soulbounddolls.neoforge.entity.PlayerDollEntity.DollPose;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.geom.EntityModelSet;
@@ -72,7 +73,7 @@ public final class PlayerDollItemRenderer extends BlockEntityWithoutLevelRendere
         try {
             applyDisplayTransform(displayContext, poseStack);
             if (renderStrategy == PlayerDollItemRenderStrategy.ENTITY_MODEL) {
-                renderEntityModel(skinTexture, poseStack, bufferSource, packedLight);
+                renderEntityModel(stack, displayContext, skinTexture, poseStack, bufferSource, packedLight);
             } else {
                 renderTemplateModel(templateModel, poseStack, bufferSource, packedLight);
             }
@@ -250,14 +251,48 @@ public final class PlayerDollItemRenderer extends BlockEntityWithoutLevelRendere
         return playerDollModel;
     }
 
-    private void renderEntityModel(ResourceLocation skinTexture, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
+    private void renderEntityModel(ItemStack stack, ItemDisplayContext displayContext, ResourceLocation skinTexture, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight) {
         poseStack.pushPose();
-        PlayerDollItemModelTransform.apply(poseStack);
+        var dollPose = displayContext == ItemDisplayContext.HEAD
+                ? PlayerDollItemPose.fromHeadComponent(stack.get(SoulboundDollsComponents.PLAYER_DOLL_POSE.get()))
+                : PlayerDollItemPose.fromComponent(stack.get(SoulboundDollsComponents.PLAYER_DOLL_POSE.get()));
+        PlayerDollItemPose.Offset headOffset = displayContext == ItemDisplayContext.HEAD
+                ? PlayerDollItemPose.combineOffsets(baseHeadOffset(), poseOffset(dollPose))
+                : PlayerDollItemPose.Offset.ZERO;
+        PlayerDollItemModelTransform.apply(poseStack, headOffset);
         PlayerDollModel model = getPlayerDollModel();
-        model.setupDollAnim(DollPose.STANDING, 0, 0.0F, 0.0F, 0.0F);
+        model.setupDollAnim(dollPose, 0, 0.0F, 0.0F, 0.0F);
         VertexConsumer buffer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(skinTexture));
         model.renderToBuffer(poseStack, buffer, packedLight, OverlayTexture.NO_OVERLAY);
         poseStack.popPose();
+    }
+
+    private static PlayerDollItemPose.Offset baseHeadOffset() {
+        return scalePixels(PlayerDollItemPose.configOffset(
+                SoulboundDollsConfig.WORN_DOLL_HEAD_OFFSET_X::get,
+                SoulboundDollsConfig.WORN_DOLL_HEAD_OFFSET_Y::get,
+                SoulboundDollsConfig.WORN_DOLL_HEAD_OFFSET_Z::get));
+    }
+
+    private static PlayerDollItemPose.Offset poseOffset(DollPose pose) {
+        return switch (pose) {
+            case SITTING -> scalePixels(PlayerDollItemPose.configOffset(
+                    SoulboundDollsConfig.WORN_DOLL_SITTING_OFFSET_X::get,
+                    SoulboundDollsConfig.WORN_DOLL_SITTING_OFFSET_Y::get,
+                    SoulboundDollsConfig.WORN_DOLL_SITTING_OFFSET_Z::get));
+            case STANDING -> scalePixels(PlayerDollItemPose.configOffset(
+                    SoulboundDollsConfig.WORN_DOLL_STANDING_OFFSET_X::get,
+                    SoulboundDollsConfig.WORN_DOLL_STANDING_OFFSET_Y::get,
+                    SoulboundDollsConfig.WORN_DOLL_STANDING_OFFSET_Z::get));
+            case CUTE_IDLE -> scalePixels(PlayerDollItemPose.configOffset(
+                    SoulboundDollsConfig.WORN_DOLL_CUTE_IDLE_OFFSET_X::get,
+                    SoulboundDollsConfig.WORN_DOLL_CUTE_IDLE_OFFSET_Y::get,
+                    SoulboundDollsConfig.WORN_DOLL_CUTE_IDLE_OFFSET_Z::get));
+        };
+    }
+
+    private static PlayerDollItemPose.Offset scalePixels(PlayerDollItemPose.Offset offset) {
+        return new PlayerDollItemPose.Offset(offset.x() / 16.0F, offset.y() / 16.0F, offset.z() / 16.0F);
     }
 
     private static void applyElementRotation(ElementRotation rotation, PoseStack poseStack) {

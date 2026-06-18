@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -68,5 +69,18 @@ class DollStackHelperTest {
                 PlayerDollProfile.of(UUID.randomUUID(), "Alex", "", "", false, 1L));
         assertFalse(DollStackHelper.isBoundPlayerDoll(spoofed));
         assertFalse(DollStackHelper.isBoundPlayerDoll(ItemStack.EMPTY));
+    }
+
+    @Test
+    void headSlotDollStackIsNormalizedToOneItem() {
+        PlayerDollProfile profile = PlayerDollProfile.of(UUID.randomUUID(), "Alex", "", "", false, 1L);
+        ItemStack stack = PlayerDollItem.createBoundDoll(profile);
+        stack.setCount(14);
+
+        ItemStack normalized = DollStackHelper.singleHeadSlotDoll(stack);
+
+        assertEquals(1, normalized.getCount());
+        assertTrue(DollStackHelper.isBoundPlayerDoll(normalized));
+        assertEquals(14, stack.getCount());
     }
 }

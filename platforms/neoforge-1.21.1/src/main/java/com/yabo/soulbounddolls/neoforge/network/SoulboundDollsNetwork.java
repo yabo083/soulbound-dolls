@@ -21,6 +21,11 @@ public final class SoulboundDollsNetwork {
                 TeleportToDollPlayerPacket.STREAM_CODEC,
                 TeleportToDollPlayerPacket::handle
         );
+        registrar.playToServer(
+                CycleWornDollPosePacket.TYPE,
+                CycleWornDollPosePacket.STREAM_CODEC,
+                CycleWornDollPosePacket::handle
+        );
     }
 
     private SoulboundDollsNetwork() {

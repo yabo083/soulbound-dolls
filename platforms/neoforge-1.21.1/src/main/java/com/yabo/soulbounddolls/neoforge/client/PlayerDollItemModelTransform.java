@@ -11,6 +11,11 @@ final class PlayerDollItemModelTransform {
     }
 
     static void apply(PoseStack poseStack) {
+        apply(poseStack, PlayerDollItemPose.Offset.ZERO);
+    }
+
+    static void apply(PoseStack poseStack, PlayerDollItemPose.Offset offset) {
+        poseStack.translate(offset.x(), offset.y(), offset.z());
         poseStack.translate(0.5F + MODEL_CENTER.x() * SCALE, 0.5F + MODEL_CENTER.y() * SCALE, 0.5F - MODEL_CENTER.z() * SCALE);
         poseStack.scale(-SCALE, -SCALE, SCALE);
     }

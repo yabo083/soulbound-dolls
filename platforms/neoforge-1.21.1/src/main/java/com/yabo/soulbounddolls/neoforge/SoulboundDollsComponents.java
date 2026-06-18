@@ -50,6 +50,14 @@ public final class SoulboundDollsComponents {
                     .build()
     );
 
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Integer>> PLAYER_DOLL_POSE = COMPONENTS.register(
+            "player_doll_pose",
+            () -> DataComponentType.<Integer>builder()
+                    .persistent(Codec.INT)
+                    .networkSynchronized(ByteBufCodecs.VAR_INT)
+                    .build()
+    );
+
     private SoulboundDollsComponents() {
     }
 

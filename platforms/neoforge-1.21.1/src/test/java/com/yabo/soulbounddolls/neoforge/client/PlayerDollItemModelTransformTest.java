@@ -30,4 +30,18 @@ class PlayerDollItemModelTransformTest {
         Vector3f frontNormal = poseStack.last().normal().transform(new Vector3f(0.0F, 0.0F, -1.0F));
         assertTrue(frontNormal.z() < -0.99F, () -> "front normal was " + frontNormal);
     }
+
+    @Test
+    void negativeHeadSlotYOffsetMovesDollDownInDisplaySpace() {
+        PoseStack baseline = new PoseStack();
+        PlayerDollItemModelTransform.apply(baseline);
+        Vector3f center = PlayerDollItemModelTransform.modelCenter();
+        float baselineY = baseline.last().pose().transformPosition(center.x(), center.y(), center.z(), new Vector3f()).y();
+
+        PoseStack adjusted = new PoseStack();
+        PlayerDollItemModelTransform.apply(adjusted, new PlayerDollItemPose.Offset(0.0F, -0.5F, 0.0F));
+        float adjustedY = adjusted.last().pose().transformPosition(center.x(), center.y(), center.z(), new Vector3f()).y();
+
+        assertTrue(adjustedY < baselineY, () -> "negative Y offset should move down, baseline=" + baselineY + " adjusted=" + adjustedY);
+    }
 }
