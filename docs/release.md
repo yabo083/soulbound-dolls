@@ -35,3 +35,5 @@ From GitHub Actions, run the `Publish` workflow manually and provide:
 - `version_type`: `alpha`, `beta`, or `release`.
 
 Tag publishing is preferred for real releases because the tag is immutable and auditable.
+
+Do not create a tag until the Modrinth and CurseForge projects are configured and the maintainer is ready to publish the official release.
